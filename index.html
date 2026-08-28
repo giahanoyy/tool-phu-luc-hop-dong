@@ -1,95 +1,962 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tool Quản Lý, Điền, Sửa & Chia Sẻ Phụ Lục HĐ CTV</title>
+    <!-- SheetJS CDN for reading Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- html2docx CDN for exporting to Word docx -->
+    <script src="https://cdn.jsdelivr.net/npm/html2docx@1.5.0/dist/html2docx.min.js"></script>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-hover: #1e40af;
+            --bg-main: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #cbd5e1;
+            --accent: #2563eb;
+            --success: #16a34a;
+            --warning: #d97706;
+            --purple: #7c3aed;
+        }
 
-Tool Quản Lý, Điền, Chỉnh Sửa & Chia Sẻ Phụ Lục HĐ CTV
-Tự động điền dữ liệu, chỉnh sửa trực tiếp toàn bộ văn bản, quản lý checklist và chia sẻ liên kết cho Sếp xem toàn bộ danh sách
-🔗 Tạo Link Chia Sẻ Tất Cả HĐ Cho Sếp Xem
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 14px;
+        }
 
+        .container {
+            max-width: 1500px;
+            margin: 0 auto;
+        }
 
-1. Nhập File Excel
-📁 Tải file Excel (.xlsx) lên
+        header {
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
 
-2. Danh Sách & Checklist Tiến Độ
+        h1 {
+            font-size: 22px;
+            color: var(--primary);
+        }
 
-STT
-Họ & Tên CTV
-HĐ OK
-Đã In
- 
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 13px;
+        }
 
-3. Bảng Chỉnh Sửa Nhanh Trường Dữ Liệu
-Chọn CTV từ danh sách:
-Hợp đồng OK Đã In Phụ Lục
-Tên CTV (Bên B):
-Số Hợp Đồng Gốc:
-Ngày Ký Hợp Đồng Gốc:
-Ngày Lập Phụ Lục:
-Nội Dung Phụ Lục (Hạng mục):
-Tổng Giá Trị Hợp Đồng (Gross):
-📄 Xuất File WORD (.docx) 🖨️ In / Tải File PDF (Tự đánh dấu Đã In) 🔗 Tạo Link Chia Sẻ Tất Cả HĐ Cho Sếp Xem
-✏️ SỬA TRỰC TIẾP TOÀN BỘ VĂN BẢN WORD: Bạn có thể nhấp chuột trực tiếp vào bất kỳ câu, từ, đoạn văn hay dòng nào trên trang giấy bên dưới để gõ sửa/thêm bớt nội dung thiếu trước khi xuất file Word!
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 420px 1fr;
+            gap: 20px;
+        }
 
+        @media (max-width: 1100px) {
+            .grid-layout {
+                grid-template-columns: 1fr;
+            }
+        }
 
-PHỤ LỤC SỐ 01
-(Đính kèm Hợp đồng số : .................... ngày ....................)
-Căn cứ Hợp đồng dịch vụ số .................... được ký vào ngày .................... (“Hợp đồng”)
-Nhu cầu của các Bên
-Phụ lục Hợp đồng số 01 này (Gọi tắt là “Phụ lục”) được lập vào ngày: .................... bởi giữa các bên sau đây:
-BÊN A (BÊN SỬ DỤNG DỊCH VỤ): CÔNG TY CỔ PHẦN REAL STAKE FINTECH
-Địa chỉ : Robot Tower, 308-308C Điện Biên Phủ, Phường 4, Quận 3, Thành phố Hồ Chí Minh, Việt Nam
-Mã số thuế : 0316552631
-Đại diện : Ông NGUYỄN MINH TRUNG                      Chức vụ: GIÁM ĐỐC
-BÊN B (BÊN CUNG CẤP DỊCH VỤ): ....................
-Ngày tháng năm sinh : ....................                          Giới tính : ..........
-Địa chỉ liên hệ: ..................................................
-Số điện thoại: ....................
-Mã số thuế : ....................
-Số CMND/CCCD: ....................
-Số tài khoản ngân hàng: ....................
-Tại ngân hàng: ....................
-Trong quá trình triển khai hợp đồng dịch vụ số .................... ký kết ngày ...................., hai bên đã thống nhất ký Phụ Lục 01 chi tiết nội dung công việc thực hiện giữa các bên như sau:
-ĐIỀU 1: NỘI DUNG THỰC HIỆN:
-Bên A đồng ý giao và bên B đồng ý nhận nội dung công việc như sau :
-Hạng mục
-Đơn vị tính
-Đơn giá (đồng)
-Số lượng
-Thành tiền (đồng)
- 
-....................
-Gói 1
-....................
-1
-....................
-Tổng giá trị hợp đồng (Đã bao gồm thuế Thu nhập cá nhân 10%)
-....................
-Thuế Thu nhập cá nhân (Bên A sẽ đóng thay cho bên B)
-....................
-Số tiền thực lãnh sau khi trừ thuế thu nhập cá nhân
-....................
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            margin-bottom: 16px;
+        }
 
-ĐIỀU 2: THỜI GIAN THỰC HIỆN:
-Thời gian thực hiện từ ngày .................... Đến ngày ....................
-ĐIỀU 3: THANH TOÁN:
-Bên A sẽ thanh toán cho bên B 100% giá trị Hợp đồng sau khi trừ các khoản thuế , phí liên quan trong vòng 10 ngày làm việc kể từ lúc hai bên nghiệm thu kết quả công việc đã nêu.
-ĐIỀU 4: ĐIỀU KHOẢN CHUNG:
-Trường hợp một bên có thay đổi thông tin trong Phụ Lục này sẽ phải thông báo cho bên còn lại chậm nhất trong 03 ngày làm việc kể từ ngày có thay đổi. Mọi trường hợp thiệt hại, mất mát hoặc các vấn đề liên quan dẫn đến chậm trễ thực hiện do lỗi không thông báo thay đổi đúng quy định của Hợp đồng sẽ do bên có thay đổi chịu trách nhiệm. Việc thay đổi sẽ có giá trị ràng buộc bên kia tại thời điểm được đề cập thông báo đó và hai bên sẽ không cần phải lập phụ lục điều chỉnh Phụ Lục này.
-Phụ Lục này và các văn bản, thông báo điều chỉnh sau đó sẽ là một phần không tách rời Hợp Đồng Dịch vụ số: .................... ký ngày: .................... , bởi Bên A (CÔNG TY CP REAL STAKE FINTECH) và Bên B ( .................... ) và có giá trị ràng buộc các bên thực hiện.
-Phụ lục này được lập thành 02 (hai) bản có giá trị pháp lý như nhau, mỗi bên giữ 01 (một) bản.
+        .card-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
 
-ĐẠI DIỆN BÊN A
+        .file-upload-area {
+            border: 2px dashed var(--accent);
+            border-radius: 6px;
+            padding: 14px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #eff6ff;
+        }
 
+        .file-upload-area:hover {
+            background: #dbeafe;
+        }
 
+        input[type="file"] {
+            display: none;
+        }
 
+        .form-group {
+            margin-bottom: 10px;
+        }
 
-NGUYỄN MINH TRUNG
-BÊN B
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--text-main);
+        }
 
+        input[type="text"], select, textarea {
+            width: 100%;
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 13px;
+            outline: none;
+            transition: border 0.2s;
+        }
 
+        textarea {
+            resize: vertical;
+            min-height: 45px;
+        }
 
+        input[type="text"]:focus, select:focus, textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(37,99,235,0.1);
+        }
 
-....................
+        .checklist-table-wrapper {
+            max-height: 240px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            margin-top: 8px;
+        }
 
+        .checklist-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
 
-🔗 Link Chia Sẻ Danh Sách Hợp Đồng Của Sếp
-Đã đóng gói dữ liệu của tất cả CTV thành liên kết. Sếp mở ra sẽ xem được toàn bộ danh sách, chuyển đổi giữa các CTV và kiểm tra checklist dễ dàng!
-📋 Sao Chép Link Đóng
+        .checklist-table th {
+            position: sticky;
+            top: 0;
+            background: #e2e8f0;
+            color: var(--text-main);
+            padding: 8px;
+            text-align: left;
+            font-weight: 700;
+            z-index: 10;
+        }
+
+        .checklist-table td {
+            padding: 6px 8px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .checklist-table tr.active-row {
+            background-color: #dbeafe !important;
+            font-weight: 600;
+        }
+
+        .checklist-table tr:hover {
+            background-color: #f8fafc;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-success {
+            background: var(--success);
+        }
+
+        .btn-success:hover {
+            background: #15803d;
+        }
+
+        .btn-purple {
+            background: var(--purple);
+        }
+
+        .btn-purple:hover {
+            background: #6d28d9;
+        }
+
+        .paper-container {
+            background: #fff;
+            padding: 40px 60px;
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            font-family: "Times New Roman", Times, serif;
+            font-size: 13pt;
+            line-height: 1.4;
+            color: #000;
+            min-height: 1000px;
+        }
+
+        .editable-field {
+            background-color: #fef9c3;
+            border-bottom: 1px dashed #ca8a04;
+            padding: 0 2px;
+            outline: none;
+            transition: background 0.2s;
+        }
+
+        .editable-field:focus {
+            background-color: #fef08a;
+            border-bottom: 2px solid #a16207;
+        }
+
+        [contenteditable="true"]:hover {
+            outline: 1px dashed #ca8a04;
+        }
+
+        .paper-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .paper-title {
+            font-weight: bold;
+            font-size: 16pt;
+            text-transform: uppercase;
+        }
+
+        .paper-subtitle {
+            font-size: 12pt;
+            font-style: italic;
+            margin-top: 4px;
+        }
+
+        .bullet-item {
+            position: relative;
+            padding-left: 20px;
+            margin-bottom: 4px;
+        }
+
+        .bullet-item::before {
+            content: "–";
+            position: absolute;
+            left: 0;
+        }
+
+        .section-header {
+            font-weight: bold;
+            margin-top: 14px;
+            margin-bottom: 6px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+        }
+
+        .data-table th, .data-table td {
+            border: 1px solid #000;
+            padding: 6px 8px;
+            font-size: 12pt;
+            vertical-align: middle;
+        }
+
+        .data-table th {
+            background-color: #d9d9d9;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .no-print {
+            display: block;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background: white;
+                padding: 0;
+            }
+            .paper-container {
+                box-shadow: none;
+                border: none;
+                padding: 0;
+            }
+            .editable-field {
+                background: transparent !important;
+                border: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+ <div class="container">
+    <header class="no-print">
+        <div>
+            <h1>Tool Quản Lý, Điền, Chỉnh Sửa & Chia Sẻ Phụ Lục HĐ CTV</h1>
+            <p class="subtitle">Tự động điền dữ liệu, chỉnh sửa trực tiếp toàn bộ văn bản, quản lý checklist và chia sẻ liên kết cho Sếp xem toàn bộ danh sách</p>
+        </div>
+        <div style="display:flex; gap:10px;">
+            <button class="btn btn-purple" onclick="generateShareableLink()">🔗 Tạo Link Chia Sẻ Tất Cả HĐ Cho Sếp Xem</button>
+        </div>
+    </header>
+
+    <div class="grid-layout">
+        <div class="no-print">
+            <div class="card">
+                <div class="card-title">1. Nhập File Excel</div>
+                <div class="file-upload-area" onclick="document.getElementById('excelFile').click()">
+                    <span id="fileName" style="font-weight:600; color:var(--primary);">📁 Tải file Excel (.xlsx) lên</span>
+                    <input type="file" id="excelFile" accept=".xlsx, .xls" onchange="handleFileSelect(event)">
+                </div>
+            </div>
+
+            <div class="card" id="controlCard" style="display: none;">
+                <div class="card-title">
+                    <span>2. Danh Sách & Checklist Tiến Độ</span>
+                    <span id="statsSummary" style="font-size:11px; font-weight:normal; color:var(--text-muted);"></span>
+                </div>
+
+                <div class="checklist-table-wrapper">
+                    <table class="checklist-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 35px;">STT</th>
+                                <th>Họ & Tên CTV</th>
+                                <th style="width: 55px; text-align:center;">HĐ OK</th>
+                                <th style="width: 55px; text-align:center;">Đã In</th>
+                            </tr>
+                        </thead>
+                        <tbody id="checklistTbody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card-title" style="margin-top:16px;">3. Bảng Chỉnh Sửa Nhanh Trường Dữ Liệu</div>
+                <div class="form-group">
+                    <label>Chọn CTV từ danh sách:</label>
+                    <select id="personSelect" onchange="onSelectPersonChange()"></select>
+                </div>
+
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:8px 10px; border-radius:6px; margin-bottom:10px; display:flex; gap:16px;">
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; margin:0; font-size:12px;">
+                        <input type="checkbox" id="chk_hdOk" onchange="updateCurrentChecklistStatus()">
+                        <strong>Hợp đồng OK</strong>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; margin:0; font-size:12px;">
+                        <input type="checkbox" id="chk_daIn" onchange="updateCurrentChecklistStatus()">
+                        <strong>Đã In Phụ Lục</strong>
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label>Tên CTV (Bên B):</label>
+                    <input type="text" id="in_hoTen" oninput="syncField('in_hoTen', ['field_Ho_va_ten', 'field_Ho_va_ten_2', 'field_Ho_va_ten_ky'])">
+                </div>
+                <div class="form-group">
+                    <label>Số Hợp Đồng Gốc:</label>
+                    <input type="text" id="in_soHD" oninput="syncField('in_soHD', ['field_Dinh_kem_so_HD', 'field_Dinh_kem_so_HD_2', 'field_Dinh_kem_so_HD_3', 'field_Dinh_kem_so_HD_4'])">
+                </div>
+                <div class="form-group">
+                    <label>Ngày Ký Hợp Đồng Gốc:</label>
+                    <input type="text" id="in_ngayKyHD" oninput="syncField('in_ngayKyHD', ['field_Ngay_ky_HD', 'field_Ngay_ky_HD_2', 'field_Ngay_ky_HD_3', 'field_Ngay_ky_HD_4'])">
+                </div>
+                <div class="form-group">
+                    <label>Ngày Lập Phụ Lục:</label>
+                    <input type="text" id="in_ngayLapPL" oninput="syncField('in_ngayLapPL', ['field_Ngay_lap_PL'])">
+                </div>
+                <div class="form-group">
+                    <label>Nội Dung Phụ Lục (Hạng mục):</label>
+                    <textarea id="in_noiDungPL" oninput="syncField('in_noiDungPL', ['field_Noi_dung_PL'])"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Tổng Giá Trị Hợp Đồng (Gross):</label>
+                    <input type="text" id="in_tongGiaTri" oninput="syncField('in_tongGiaTri', ['field_Tong_gia_tri_HD_1', 'field_Tong_gia_tri_HD_2'])">
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-success" onclick="exportToWord()">📄 Xuất File WORD (.docx)</button>
+                    <button class="btn" onclick="printAndMarkIn()">🖨️ In / Tải File PDF (Tự đánh dấu Đã In)</button>
+                    <button class="btn btn-purple" onclick="generateShareableLink()">🔗 Tạo Link Chia Sẻ Tất Cả HĐ Cho Sếp Xem</button>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div style="background:#fef3c7; border:1px solid #f59e0b; padding:10px 14px; border-radius:6px; margin-bottom:12px; font-size:13px;" class="no-print">
+                ✏️ <strong>SỬA TRỰC TIẾP TOÀN BỘ VĂN BẢN WORD:</strong> Bạn có thể nhấp chuột trực tiếp vào <strong>bất kỳ câu, từ, đoạn văn hay dòng nào</strong> trên trang giấy bên dưới để gõ sửa/thêm bớt nội dung thiếu trước khi xuất file Word!
+            </div>
+
+            <div class="paper-container" id="paper">
+                <div class="paper-header">
+                    <div class="paper-title" contenteditable="true">PHỤ LỤC SỐ 0<span contenteditable="true" class="editable-field" id="field_Phu_luc_so">1</span></div>
+                    <div class="paper-subtitle" contenteditable="true">(Đính kèm Hợp đồng số : <span contenteditable="true" class="editable-field" id="field_Dinh_kem_so_HD">....................</span> ngày <span contenteditable="true" class="editable-field" id="field_Ngay_ky_HD">....................</span>)</div>
+                </div>
+
+                <div class="bullet-item" contenteditable="true">Căn cứ Hợp đồng dịch vụ số <span contenteditable="true" class="editable-field" id="field_Dinh_kem_so_HD_2">....................</span> được ký vào ngày <span contenteditable="true" class="editable-field" id="field_Ngay_ky_HD_2">....................</span> (“<strong>Hợp đồng</strong>”)</div>
+                <div class="bullet-item" contenteditable="true">Nhu cầu của các Bên</div>
+
+                <p style="margin-top: 10px;" contenteditable="true">Phụ lục Hợp đồng số 0<span contenteditable="true" class="editable-field" id="field_Phu_luc_so_2">1</span> này (Gọi tắt là “<strong>Phụ lục</strong>”) được lập vào ngày: <span contenteditable="true" class="editable-field" id="field_Ngay_lap_PL">....................</span> bởi giữa các bên sau đây:</p>
+
+                <div class="section-header" contenteditable="true">BÊN A (BÊN SỬ DỤNG DỊCH VỤ): CÔNG TY CỔ PHẦN REAL STAKE FINTECH</div>
+                <p contenteditable="true">Địa chỉ : <span contenteditable="true" class="editable-field" id="field_Dia_chi_Cong_ty">Robot Tower, 308-308C Điện Biên Phủ, Phường 4, Quận 3, Thành phố Hồ Chí Minh, Việt Nam</span></p>
+                <p contenteditable="true">Mã số thuế : 0316552631</p>
+                <p contenteditable="true">Đại diện : Ông <span contenteditable="true" class="editable-field" id="field_Ten_giam_doc">NGUYỄN MINH TRUNG</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Chức vụ: <span contenteditable="true" class="editable-field" id="field_Chuc_vu">GIÁM ĐỐC</span></p>
+
+                <div class="section-header" contenteditable="true">BÊN B (BÊN CUNG CẤP DỊCH VỤ): <span contenteditable="true" class="editable-field" id="field_Ho_va_ten">....................</span></div>
+                <p contenteditable="true">Ngày tháng năm sinh : <span contenteditable="true" class="editable-field" id="field_Ngay_sinh">....................</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Giới tính : <span contenteditable="true" class="editable-field" id="field_Gioi_tinh">..........</span></p>
+                <p contenteditable="true">Địa chỉ liên hệ: <span contenteditable="true" class="editable-field" id="field_Dia_chi_lien_he">..................................................</span></p>
+                <p contenteditable="true">Số điện thoại: <span contenteditable="true" class="editable-field" id="field_So_dien_thoai">....................</span></p>
+                <p contenteditable="true">Mã số thuế : <span contenteditable="true" class="editable-field" id="field_Ma_so_thue">....................</span></p>
+                <p contenteditable="true">Số CMND/CCCD: <span contenteditable="true" class="editable-field" id="field_So_CMNDCCCD">....................</span></p>
+                <p contenteditable="true">Số tài khoản ngân hàng: <span contenteditable="true" class="editable-field" id="field_So_tai_khoan">....................</span></p>
+                <p contenteditable="true">Tại ngân hàng: <span contenteditable="true" class="editable-field" id="field_Tai_ngan_hang">....................</span></p>
+
+                <p style="margin-top: 14px;" contenteditable="true">Trong quá trình triển khai hợp đồng dịch vụ số <span contenteditable="true" class="editable-field" id="field_Dinh_kem_so_HD_3">....................</span> ký kết ngày <span contenteditable="true" class="editable-field" id="field_Ngay_ky_HD_3">....................</span>, hai bên đã thống nhất ký Phụ Lục 01 chi tiết nội dung công việc thực hiện giữa các bên như sau:</p>
+
+                <div class="section-header" contenteditable="true">ĐIỀU 1: NỘI DUNG THỰC HIỆN:</div>
+                <p style="padding-left: 20px;" contenteditable="true">Bên A đồng ý giao và bên B đồng ý nhận nội dung công việc như sau :</p>
+
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 35%;" contenteditable="true">Hạng mục</th>
+                            <th style="width: 15%;" contenteditable="true">Đơn vị tính</th>
+                            <th style="width: 18%;" contenteditable="true">Đơn giá (đồng)</th>
+                            <th style="width: 12%;" contenteditable="true">Số lượng</th>
+                            <th style="width: 20%;" contenteditable="true">Thành tiền (đồng)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td contenteditable="true" class="editable-field" id="field_Noi_dung_PL" style="white-space: pre-line;">....................</td>
+                            <td style="text-align:center;" contenteditable="true">Gói <span contenteditable="true" class="editable-field" id="field_So_luong">1</span></td>
+                            <td style="text-align:right;" contenteditable="true" class="editable-field" id="field_Don_vi_tinh">....................</td>
+                            <td style="text-align:center;" contenteditable="true">1</td>
+                            <td style="text-align:right;" contenteditable="true" class="editable-field" id="field_Tong_gia_tri_HD_1">....................</td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" style="text-align: center; font-weight: bold;" contenteditable="true">Tổng giá trị hợp đồng (Đã bao gồm thuế Thu nhập cá nhân 10%)</td>
+                            <td style="text-align:right; font-weight:bold;" contenteditable="true" class="editable-field" id="field_Tong_gia_tri_HD_2">....................</td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" style="text-align: center; font-weight: bold;" contenteditable="true">Thuế Thu nhập cá nhân (Bên A sẽ đóng thay cho bên B)</td>
+                            <td style="text-align:right;" contenteditable="true" class="editable-field" id="field_Thue_TNCN">....................</td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" style="text-align: center; font-weight: bold;" contenteditable="true">Số tiền thực lãnh sau khi trừ thuế thu nhập cá nhân</td>
+                            <td style="text-align:right; font-weight:bold;" contenteditable="true" class="editable-field" id="field_So_tien_thuc_linh">....................</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="section-header" contenteditable="true">ĐIỀU 2: THỜI GIAN THỰC HIỆN:</div>
+                <p style="padding-left: 20px;" contenteditable="true">Thời gian thực hiện từ ngày <span contenteditable="true" class="editable-field" id="field_Tu_ngay">....................</span> Đến ngày <span contenteditable="true" class="editable-field" id="field_Den_ngay">....................</span></p>
+
+                <div class="section-header" contenteditable="true">ĐIỀU 3: THANH TOÁN:</div>
+                <p style="padding-left: 20px;" contenteditable="true">Bên A sẽ thanh toán cho bên B 100% giá trị Hợp đồng sau khi trừ các khoản thuế , phí liên quan trong vòng 10 ngày làm việc kể từ lúc hai bên nghiệm thu kết quả công việc đã nêu.</p>
+
+                <div class="section-header" contenteditable="true">ĐIỀU 4: ĐIỀU KHOẢN CHUNG:</div>
+                <p style="text-indent: 30px; text-align: justify; margin-bottom: 8px;" contenteditable="true">Trường hợp một bên có thay đổi thông tin trong Phụ Lục này sẽ phải thông báo cho bên còn lại chậm nhất trong 03 ngày làm việc kể từ ngày có thay đổi. Mọi trường hợp thiệt hại, mất mát hoặc các vấn đề liên quan dẫn đến chậm trễ thực hiện do lỗi không thông báo thay đổi đúng quy định của Hợp đồng sẽ do bên có thay đổi chịu trách nhiệm. Việc thay đổi sẽ có giá trị ràng buộc bên kia tại thời điểm được đề cập thông báo đó và hai bên sẽ không cần phải lập phụ lục điều chỉnh Phụ Lục này.</p>
+                <p style="text-indent: 30px; text-align: justify; margin-bottom: 8px;" contenteditable="true">Phụ Lục này và các văn bản, thông báo điều chỉnh sau đó sẽ là một phần không tách rời Hợp Đồng Dịch vụ số: <span contenteditable="true" class="editable-field" id="field_Dinh_kem_so_HD_4">....................</span> ký ngày: <span contenteditable="true" class="editable-field" id="field_Ngay_ky_HD_4">....................</span> , bởi Bên A (CÔNG TY CP REAL STAKE FINTECH) và Bên B ( <span contenteditable="true" class="editable-field" id="field_Ho_va_ten_2">....................</span> ) và có giá trị ràng buộc các bên thực hiện.</p>
+                <p style="text-indent: 30px; text-align: justify;" contenteditable="true">Phụ lục này được lập thành 02 (hai) bản có giá trị pháp lý như nhau, mỗi bên giữ 01 (một) bản.</p>
+
+                <div style="margin-top: 30px; display: table; width: 100%;">
+                    <div style="display: table-cell; width: 50%; text-align: center; vertical-align: top;">
+                        <strong contenteditable="true">ĐẠI DIỆN BÊN A</strong>
+                        <br><br><br><br><br>
+                        <strong contenteditable="true" class="editable-field" id="field_Ten_giam_doc_ky">NGUYỄN MINH TRUNG</strong>
+                    </div>
+                    <div style="display: table-cell; width: 50%; text-align: center; vertical-align: top;">
+                        <strong contenteditable="true">BÊN B</strong>
+                        <br><br><br><br><br>
+                        <strong contenteditable="true" class="editable-field" id="field_Ho_va_ten_ky">....................</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="shareModal" class="modal">
+    <div class="modal-content">
+        <h3 style="color:var(--primary); margin-bottom:12px;">🔗 Link Chia Sẻ Danh Sách Hợp Đồng Của Sếp</h3>
+        <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">Đã đóng gói dữ liệu của tất cả CTV thành liên kết. Sếp mở ra sẽ xem được toàn bộ danh sách, chuyển đổi giữa các CTV và kiểm tra checklist dễ dàng!</p>
+        <input type="text" id="shareUrlInput" readonly onclick="this.select()" style="font-size:12px; font-family:monospace; margin-bottom:16px; padding:10px;">
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+            <button class="btn btn-purple" style="width:auto;" onclick="copyShareUrl()">📋 Sao Chép Link</button>
+            <button class="btn btn-outline" style="width:auto;" onclick="closeModal()">Đóng</button>
+        </div>
+    </div>
+</div>
+<script>
+    let globalData = [];
+    let currentIdx = 0;
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const sharedData = urlParams.get('data');
+        if (sharedData) {
+            try {
+                const decodedStr = decodeURIComponent(sharedData);
+                const parsed = JSON.parse(decodedStr);
+                if (Array.isArray(parsed)) {
+                    globalData = parsed;
+                } else {
+                    globalData = [parsed];
+                }
+                document.getElementById('controlCard').style.display = 'block';
+                renderSelectAndChecklistTable();
+                selectPerson(0);
+            } catch (e) {
+                console.error("Invalid share link data", e);
+            }
+        }
+    });
+
+    function handleFileSelect(evt) {
+        const file = evt.target.files[0];
+        if (!file) return;
+
+        document.getElementById('fileName').innerText = "📄 " + file.name;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array', cellDates: true});
+
+            let sheet = workbook.Sheets["Đợt 2 - Danh sách bổ sung PL"] || workbook.Sheets["Danh sách bổ sung PL"];
+
+            if (!sheet) {
+                const match = workbook.SheetNames.find(s => s.includes("Danh sách bổ sung PL"));
+                if (match) sheet = workbook.Sheets[match];
+            }
+
+            if (!sheet) {
+                alert("Không tìm thấy sheet 'Đợt 2 - Danh sách bổ sung PL' hoặc 'Danh sách bổ sung PL'!");
+                return;
+            }
+
+            const jsonData = XLSX.utils.sheet_to_json(sheet, {header: 1, raw: false});
+            parseExcelData(jsonData);
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function parseExcelData(rows) {
+        if (rows.length < 2) return;
+
+        const headers = rows[0].map(h => String(h || '').trim());
+
+        function getColIdx(colName) {
+            return headers.findIndex(h => h.toLowerCase() === colName.toLowerCase());
+        }
+
+        const idx_stt = getColIdx('STT');
+        const idx_hoTen = getColIdx('Họ và tên');
+        const idx_soHD = getColIdx('Đính kèm số HĐ');
+        const idx_ngayKyHD = getColIdx('Ngày ký HĐ');
+        const idx_phuLucSo = headers.findIndex(h => h.toLowerCase().includes('phụ lục số'));
+        const idx_ngayLapPL = getColIdx('Ngày lập PL');
+        const idx_ngaySinh = getColIdx('Ngày sinh');
+        const idx_gioiTinh = getColIdx('Giới tính');
+        const idx_diaChiLienHe = getColIdx('Địa chỉ liên hệ');
+        const idx_sdt = getColIdx('Số điện thoại');
+        const idx_mst = getColIdx('Mã số thuế');
+        const idx_cmnd = getColIdx('Số CMND/CCCD');
+        const idx_stk = getColIdx('Số tài khoản');
+        const idx_nganHang = getColIdx('Tại ngân hàng');
+        const idx_hangMuc = getColIdx('Hạng mục');
+        const idx_dvt = getColIdx('Đơn vị tính');
+        const idx_donGia = getColIdx('Đơn giá') !== -1 ? getColIdx('Đơn giá') : getColIdx('Tổng giá trị HĐ');
+        const idx_soLuong = getColIdx('Số lượng');
+        const idx_tongGiaTri = getColIdx('Tổng giá trị HĐ');
+        const idx_thueTNCN = getColIdx('Thuế TNCN');
+        const idx_thucLinh = headers.findIndex(h => h.toLowerCase().includes('số tiền thực'));
+        const idx_tuNgay = getColIdx('Từ ngày');
+        const idx_denNgay = getColIdx('Đến ngày');
+        const idx_tenGiamDoc = getColIdx('Tên giám đốc');
+        const idx_chucVu = getColIdx('Chức vụ');
+        const idx_diaChiCongTy = headers.findIndex(h => h.toLowerCase().includes('địa chỉ công ty'));
+        const idx_noiDungPL = getColIdx('Nội dung PL');
+        const idx_check = getColIdx('check');
+
+        globalData = [];
+
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (!row || row.length === 0 || !row[idx_hoTen !== -1 ? idx_hoTen : 1]) continue;
+
+            let isOk = false;
+            if (idx_check !== -1 && row[idx_check]) {
+                let valCheck = String(row[idx_check]).toLowerCase();
+                if (valCheck === '1' || valCheck === 'true' || valCheck === 'ok') isOk = true;
+            }
+
+            let item = {
+                stt: row[idx_stt] || i,
+                hoTen: row[idx_hoTen !== -1 ? idx_hoTen : 1] || '',
+                dinhKemSoHD: row[idx_soHD] || '',
+                ngayKyHD: row[idx_ngayKyHD] || '',
+                phuLucSo: row[idx_phuLucSo] || '1',
+                ngayLapPL: row[idx_ngayLapPL] || '',
+                ngaySinh: row[idx_ngaySinh] || '',
+                gioiTinh: row[idx_gioiTinh] || '',
+                diaChiLienHe: row[idx_diaChiLienHe] || '',
+                sdt: row[idx_sdt] || '',
+                mst: row[idx_mst] || '',
+                cmnd: row[idx_cmnd] || '',
+                stk: row[idx_stk] || '',
+                nganHang: row[idx_nganHang] || '',
+                hangMuc: row[idx_hangMuc] || '',
+                dvt: row[idx_dvt] || 'Gói',
+                donGia: row[idx_donGia] || '',
+                soLuong: row[idx_soLuong] || '1',
+                tongGiaTri: row[idx_tongGiaTri] || row[idx_donGia] || '',
+                thueTNCN: row[idx_thueTNCN] || '',
+                thucLinh: row[idx_thucLinh] || '',
+                tuNgay: row[idx_tuNgay] || '',
+                denNgay: row[idx_denNgay] || '',
+                tenGiamDoc: row[idx_tenGiamDoc] && !row[idx_tenGiamDoc].includes('#') ? row[idx_tenGiamDoc] : 'NGUYỄN MINH TRUNG',
+                chucVu: row[idx_chucVu] && !row[idx_chucVu].includes('#') ? row[idx_chucVu] : 'GIÁM ĐÓC',
+                diaChiCongTy: row[idx_diaChiCongTy] && !row[idx_diaChiCongTy].includes('#') ? row[idx_diaChiCongTy] : 'Robot Tower, 308-308C Điện Biên Phủ, Phường 4, Quận 3, Thành phố Hồ Chí Minh, Việt Nam',
+                noiDungPL: row[idx_noiDungPL] || row[idx_hangMuc] || '',
+                hdOk: isOk,
+                daIn: false
+            };
+            globalData.push(item);
+        }
+
+        renderSelectAndChecklistTable();
+        document.getElementById('controlCard').style.display = 'block';
+
+        if (globalData.length > 0) {
+            selectPerson(0);
+        }
+    }
+
+    function renderSelectAndChecklistTable() {
+        const select = document.getElementById('personSelect');
+        const tbody = document.getElementById('checklistTbody');
+
+        select.innerHTML = '';
+        tbody.innerHTML = '';
+
+        let okCount = 0;
+        let inCount = 0;
+
+        globalData.forEach((item, index) => {
+            if (item.hdOk) okCount++;
+            if (item.daIn) inCount++;
+
+            const opt = document.createElement('option');
+            opt.value = index;
+            opt.innerText = `${index + 1}. ${item.hoTen} (${item.hdOk ? '✓ HĐ OK' : '⏳ Chưa OK'})`;
+            select.appendChild(opt);
+
+            const tr = document.createElement('tr');
+            tr.id = `row_person_${index}`;
+            if (index === currentIdx) tr.classList.add('active-row');
+            tr.onclick = (e) => {
+                if (e.target.tagName !== 'INPUT') selectPerson(index);
+            };
+
+            tr.innerHTML = `
+                <td style="text-align:center;">${index + 1}</td>
+                <td><strong>${item.hoTen}</strong></td>
+                <td style="text-align:center;">
+                    <input type="checkbox" ${item.hdOk ? 'checked' : ''} onchange="toggleTableCheckbox(${index}, 'hdOk', this.checked)">
+                </td>
+                <td style="text-align:center;">
+                    <input type="checkbox" ${item.daIn ? 'checked' : ''} onchange="toggleTableCheckbox(${index}, 'daIn', this.checked)">
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('statsSummary').innerText = `OK: ${okCount}/${globalData.length} | Đã In: ${inCount}/${globalData.length}`;
+    }
+
+    function selectPerson(index) {
+        currentIdx = index;
+        document.getElementById('personSelect').value = index;
+
+        document.querySelectorAll('.checklist-table tr').forEach(r => r.classList.remove('active-row'));
+        const row = document.getElementById(`row_person_${index}`);
+        if (row) {
+            row.classList.add('active-row');
+            row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+
+        document.getElementById('chk_hdOk').checked = globalData[index].hdOk;
+        document.getElementById('chk_daIn').checked = globalData[index].daIn;
+
+        renderContract();
+    }
+
+    function onSelectPersonChange() {
+        let idx = parseInt(document.getElementById('personSelect').value);
+        selectPerson(idx);
+    }
+
+    function toggleTableCheckbox(index, field, checked) {
+        globalData[index][field] = checked;
+        if (index === currentIdx) {
+            if (field === 'hdOk') document.getElementById('chk_hdOk').checked = checked;
+            if (field === 'daIn') document.getElementById('chk_daIn').checked = checked;
+        }
+        renderSelectAndChecklistTable();
+    }
+
+    function updateCurrentChecklistStatus() {
+        if (!globalData[currentIdx]) return;
+        globalData[currentIdx].hdOk = document.getElementById('chk_hdOk').checked;
+        globalData[currentIdx].daIn = document.getElementById('chk_daIn').checked;
+        renderSelectAndChecklistTable();
+    }
+
+    function cleanValue(val, fallback) {
+        if (!val || String(val).trim() === '' || String(val).includes('#NUM!')) {
+            return fallback || '....................';
+        }
+        return String(val).trim();
+    }
+
+    function formatNumber(val) {
+        if (!val || String(val).includes('#')) return '0';
+        let clean = String(val).replace(/,/g, '').trim();
+        let num = parseFloat(clean);
+        if (isNaN(num)) return val;
+        return num.toLocaleString('vi-VN');
+    }
+
+    function renderContract() {
+        const item = globalData[currentIdx];
+        if (!item) return;
+
+        let soHD = item.dinhKemSoHD ? (item.dinhKemSoHD.startsWith('/') ? '001/2021/HĐV/RSF' : item.dinhKemSoHD) : '001/2021/HĐV/RSF';
+        let ngayKyHD = cleanValue(item.ngayKyHD, '15/06/2021');
+        let ngayLapPL = cleanValue(item.ngayLapPL, ngayKyHD);
+        let phuLucSo = cleanValue(item.phuLucSo, '1').replace(/\.0$/, '');
+
+        let diaChiCongTy = cleanValue(item.diaChiCongTy, 'Robot Tower, 308-308C Điện Biên Phủ, Phường 4, Quận 3, Thành phố Hồ Chí Minh, Việt Nam');
+        let tenGiamDoc = cleanValue(item.tenGiamDoc, 'NGUYỄN MINH TRUNG');
+        let chucVu = cleanValue(item.chucVu, 'GIÁM ĐÓC');
+
+        document.getElementById('field_Phu_luc_so').innerText = phuLucSo;
+        document.getElementById('field_Phu_luc_so_2').innerText = phuLucSo;
+        document.getElementById('field_Dinh_kem_so_HD').innerText = soHD;
+        document.getElementById('field_Dinh_kem_so_HD_2').innerText = soHD;
+        document.getElementById('field_Dinh_kem_so_HD_3').innerText = soHD;
+        document.getElementById('field_Dinh_kem_so_HD_4').innerText = soHD;
+
+        document.getElementById('field_Ngay_ky_HD').innerText = ngayKyHD;
+        document.getElementById('field_Ngay_ky_HD_2').innerText = ngayKyHD;
+        document.getElementById('field_Ngay_ky_HD_3').innerText = ngayKyHD;
+        document.getElementById('field_Ngay_ky_HD_4').innerText = ngayKyHD;
+
+        document.getElementById('field_Ngay_lap_PL').innerText = ngayLapPL;
+
+        document.getElementById('field_Dia_chi_Cong_ty').innerText = diaChiCongTy;
+        document.getElementById('field_Ten_giam_doc').innerText = tenGiamDoc;
+        document.getElementById('field_Ten_giam_doc_ky').innerText = tenGiamDoc;
+        document.getElementById('field_Chuc_vu').innerText = chucVu;
+
+        let hoTen = cleanValue(item.hoTen, '....................');
+        document.getElementById('field_Ho_va_ten').innerText = hoTen;
+        document.getElementById('field_Ho_va_ten_2').innerText = hoTen;
+        document.getElementById('field_Ho_va_ten_ky').innerText = hoTen;
+
+        document.getElementById('field_Ngay_sinh').innerText = cleanValue(item.ngaySinh, '....................');
+        document.getElementById('field_Gioi_tinh').innerText = cleanValue(item.gioiTinh, '..........');
+        document.getElementById('field_Dia_chi_lien_he').innerText = cleanValue(item.diaChiLienHe, '..................................................');
+        document.getElementById('field_So_dien_thoai').innerText = cleanValue(item.sdt, '....................');
+        document.getElementById('field_Ma_so_thue').innerText = cleanValue(item.mst, '....................');
+        document.getElementById('field_So_CMNDCCCD').innerText = cleanValue(item.cmnd, '....................');
+        document.getElementById('field_So_tai_khoan').innerText = cleanValue(item.stk, '....................');
+        document.getElementById('field_Tai_ngan_hang').innerText = cleanValue(item.nganHang, '....................');
+
+        document.getElementById('field_Noi_dung_PL').innerText = cleanValue(item.noiDungPL || item.hangMuc, 'Thực hiện dịch vụ theo hợp đồng');
+        document.getElementById('field_So_luong').innerText = item.soLuong || '1';
+
+        let valDonGia = formatNumber(item.donGia || item.tongGiaTri);
+        document.getElementById('field_Don_vi_tinh').innerText = valDonGia;
+
+        let valTongGiaTri = formatNumber(item.tongGiaTri || item.donGia);
+        document.getElementById('field_Tong_gia_tri_HD_1').innerText = valTongGiaTri;
+        document.getElementById('field_Tong_gia_tri_HD_2').innerText = valTongGiaTri;
+
+        document.getElementById('field_Thue_TNCN').innerText = formatNumber(item.thueTNCN);
+        document.getElementById('field_So_tien_thuc_linh').innerText = formatNumber(item.thucLinh);
+
+        document.getElementById('field_Tu_ngay').innerText = cleanValue(item.tuNgay, '....................');
+        document.getElementById('field_Den_ngay').innerText = cleanValue(item.denNgay, '....................');
+
+        document.getElementById('in_hoTen').value = hoTen;
+        document.getElementById('in_soHD').value = soHD;
+        document.getElementById('in_ngayKyHD').value = ngayKyHD;
+        document.getElementById('in_ngayLapPL').value = ngayLapPL;
+        document.getElementById('in_noiDungPL').value = document.getElementById('field_Noi_dung_PL').innerText;
+        document.getElementById('in_tongGiaTri').value = valTongGiaTri;
+    }
+
+    function syncField(inputId, targetIds) {
+        let val = document.getElementById(inputId).value;
+        targetIds.forEach(id => {
+            let el = document.getElementById(id);
+            if (el) el.innerText = val;
+        });
+    }
+
+    function printAndMarkIn() {
+        if (globalData[currentIdx]) {
+            globalData[currentIdx].daIn = true;
+            renderSelectAndChecklistTable();
+        }
+        window.print();
+    }
+
+    function exportToWord() {
+        let hoTen = document.getElementById('field_Ho_va_ten').innerText.replace(/[^a-zA-Z0-9_À-ỹ ]/g, "").trim();
+        let fileName = `Phu_Luc_Hop_Dong_${hoTen || 'CTV'}.docx`;
+
+        let paperNode = document.getElementById('paper').cloneNode(true);
+        let editableEls = paperNode.querySelectorAll('[contenteditable]');
+        editableEls.forEach(el => {
+            el.removeAttribute('contenteditable');
+            el.style.backgroundColor = 'transparent';
+            el.style.border = 'none';
+            el.style.outline = 'none';
+        });
+
+        let htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>Phụ Lục Hợp Đồng</title>
+                <style>
+                    body { font-family: "Times New Roman", serif; font-size: 13pt; line-height: 1.4; color: #000; }
+                    .paper-header { text-align: center; margin-bottom: 20px; }
+                    .paper-title { font-weight: bold; font-size: 16pt; text-transform: uppercase; }
+                    .paper-subtitle { font-size: 12pt; font-style: italic; margin-top: 4px; }
+                    .bullet-item { margin-bottom: 4px; }
+                    .section-header { font-weight: bold; margin-top: 14px; margin-bottom: 6px; }
+                    .data-table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+                    .data-table th, .data-table td { border: 1px solid #000; padding: 6px 8px; font-size: 12pt; }
+                    .data-table th { background-color: #d9d9d9; text-align: center; font-weight: bold; }
+                </style>
+            </head>
+            <body>
+                ${paperNode.innerHTML}
+            </body>
+            </html>
+        `;
+
+        let converted = html2docx(htmlContent, {
+            filename: fileName,
+            header: false,
+            footer: false
+        });
+
+        let blob = new Blob([converted], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+        let link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function generateShareableLink() {
+        if (!globalData || globalData.length === 0) {
+            alert("Vui lòng tải file Excel lên trước khi tạo link chia sẻ!");
+            return;
+        }
+
+        const jsonStr = JSON.stringify(globalData);
+        const encodedStr = encodeURIComponent(jsonStr);
+        const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encodedStr}`;
+
+        document.getElementById('shareUrlInput').value = shareUrl;
+        document.getElementById('shareModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('shareModal').style.display = 'none';
+    }
+
+    function copyShareUrl() {
+        const input = document.getElementById('shareUrlInput');
+        input.select();
+        document.execCommand('copy');
+        alert("Đã sao chép liên kết vào bộ nhớ tạm! Bạn có thể dán liên kết này gửi cho Sếp xem toàn bộ danh sách hợp đồng CTV.");
+    }
+</script>
+</body>
+</html>
