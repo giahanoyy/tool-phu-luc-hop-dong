@@ -4,38 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tool Quản Lý, Điền, Sửa & Chia Sẻ Phụ Lục HĐ CTV</title>
-    <!-- SheetJS CDN for reading Excel -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-   <!-- html2docx CDN for exporting to Word docx -->
-<script src="https://cdn.jsdelivr.net/npm/html2docx@1.5.0/dist/html2docx.min.js"></script>
-   <script>
-function exportToWord() {
-    const previewElement = document.getElementById('phuLucPreview') || document.querySelector('.phu-luc-content') || document.querySelector('.paper-preview');
     
-    if (!previewElement) {
-        alert("⚠️ Không tìm thấy khung nội dung Phụ Lục để xuất Word!");
-        return;
-    }
+    <!-- 1. SheetJS CDN để đọc file Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <!-- 2. Thư viện xuất File Word (.docx) chuẩn không bị lỗi layout -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://unpkg.com/html-docx-js/dist/html-docx.js"></script>
 
-    // Lấy tên CTV để đặt tên file
-    let ctvName = "Phu_Luc_HD";
-    const nameInput = document.getElementById('ctvNameInput') || document.querySelector('input[value]');
-    if (nameInput && nameInput.value) ctvName = nameInput.value.replace(/\s+/g, '_');
-
-    const opt = {
-        margin: 12,
-        filename: `Phu_Luc_${ctvName}.docx`,
-        header: true,
-        footer: true
-    };
-
-    if (typeof html2docx !== 'undefined') {
-        html2docx(previewElement, opt);
-    } else {
-        alert("❌ Thư viện xuất Word chưa được nạp. Hãy kiểm tra lại kết nối mạng hoặc thẻ script html2docx!");
-    }
-}
-</script>
     <style>
         :root {
             --primary: #1e3a8a;
@@ -256,6 +232,7 @@ function exportToWord() {
             background: #6d28d9;
         }
 
+        /* KHUNG VĂN BẢN TRÊN WEB */
         .paper-container {
             background: #fff;
             padding: 40px 60px;
@@ -343,54 +320,59 @@ function exportToWord() {
             display: block;
         }
 
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-content {
-            background: white;
-            padding: 24px;
-            border-radius: 8px;
-            max-width: 500px;
-            width: 90%;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-        }
-
+        /* 🔴 CSS CẤU HÌNH IN VÀ TẢI FILE PDF CHUẨN KHỔ A4 (KHÔNG TRÀN VIỀN/RÁCH LAYOUT) */
         @media print {
-            .no-print {
+            @page {
+                size: A4 portrait;
+                margin: 15mm 15mm 15mm 15mm;
+            }
+
+            body {
+                background: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                font-family: "Times New Roman", Times, serif !important;
+            }
+
+            .no-print, header, .grid-layout > div:first-child, .btn-group, #shareModal {
                 display: none !important;
             }
-            body {
-                background: white;
-                padding: 0;
+
+            .grid-layout {
+                display: block !important;
             }
+
             .paper-container {
-                box-shadow: none;
-                border: none;
-                padding: 0;
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+                min-height: auto !important;
             }
+
             .editable-field {
                 background: transparent !important;
                 border: none !important;
+            }
+
+            table.data-table {
+                width: 100% !important;
+                page-break-inside: avoid;
+            }
+
+            th, td {
+                word-break: break-word;
             }
         }
     </style>
 </head>
 <body>
- <div class="container">
+<div class="container">
     <header class="no-print">
         <div>
             <h1>Tool Quản Lý, Điền, Chỉnh Sửa & Chia Sẻ Phụ Lục HĐ CTV</h1>
-            <p class="subtitle">Tự động điền dữ liệu, chỉnh sửa trực tiếp toàn bộ văn bản, quản lý checklist và chia sẻ liên kết cho Sếp xem toàn bộ danh sách</p>
-        </div>
-        <div style="display:flex; gap:10px;">
-            <button class="btn btn-purple" onclick="generateShareableLink()">🔗 Tạo Link Chia Sẻ Tất Cả HĐ Cho Sếp Xem</button>
+            <p class="subtitle">Tự động điền dữ liệu, chỉnh sửa trực tiếp toàn bộ văn bản, quản lý checklist và lưu tiến độ</p>
         </div>
     </header>
 
@@ -470,7 +452,7 @@ function exportToWord() {
                 <div class="btn-group">
                     <button class="btn btn-success" onclick="exportToWord()">📄 Xuất File WORD (.docx)</button>
                     <button class="btn" onclick="printAndMarkIn()">🖨️ In / Tải File PDF (Tự đánh dấu Đã In)</button>
-              <button onclick="luuTienDoLenSheet()" class="...">🔗 Tạo Link Chia Sẻ Cho Sếp Xem</button>
+                    <button class="btn btn-purple" onclick="luuTienDoLenSheet()">💾 Lưu Tiến Độ Lên Google Sheet</button>
                 </div>
             </div>
         </div>
@@ -571,41 +553,12 @@ function exportToWord() {
     </div>
 </div>
 
-<div id="shareModal" class="modal">
-    <div class="modal-content">
-        <h3 style="color:var(--primary); margin-bottom:12px;">🔗 Link Chia Sẻ Danh Sách Hợp Đồng Của Sếp</h3>
-        <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">Đã đóng gói dữ liệu của tất cả CTV thành liên kết. Sếp mở ra sẽ xem được toàn bộ danh sách, chuyển đổi giữa các CTV và kiểm tra checklist dễ dàng!</p>
-        <input type="text" id="shareUrlInput" readonly onclick="this.select()" style="font-size:12px; font-family:monospace; margin-bottom:16px; padding:10px;">
-        <div style="display:flex; justify-content:flex-end; gap:10px;">
-            <button class="btn btn-purple" style="width:auto;" onclick="copyShareUrl()">📋 Sao Chép Link</button>
-            <button class="btn btn-outline" style="width:auto;" onclick="closeModal()">Đóng</button>
-        </div>
-    </div>
-</div>
 <script>
     let globalData = [];
     let currentIdx = 0;
 
-    window.addEventListener('DOMContentLoaded', () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const sharedData = urlParams.get('data');
-        if (sharedData) {
-            try {
-                const decodedStr = decodeURIComponent(sharedData);
-                const parsed = JSON.parse(decodedStr);
-                if (Array.isArray(parsed)) {
-                    globalData = parsed;
-                } else {
-                    globalData = [parsed];
-                }
-                document.getElementById('controlCard').style.display = 'block';
-                renderSelectAndChecklistTable();
-                selectPerson(0);
-            } catch (e) {
-                console.error("Invalid share link data", e);
-            }
-        }
-    });
+    // 🔴 DÁN ĐÚNG URL WEB APP TỪ GMAIL CÁ NHÂN CỦA BẠN VÀO ĐÂY
+    const GOOGLE_SHEET_API = "https://script.google.com/macros/s/AKfycbxNIAsez7MLo2eL58tRLoFswavZy729Gm5pJju7K0IA-71vhQhrJw_jsmVoCMuX7IALLA/exec";
 
     function handleFileSelect(evt) {
         const file = evt.target.files[0];
@@ -909,25 +862,31 @@ function exportToWord() {
         window.print();
     }
 
+    // 🔴 HÀM XUẤT FILE WORD (.DOCX) CHUẨN ĐÃ ĐƯỢC TỐI ƯU
     function exportToWord() {
-        let hoTen = document.getElementById('field_Ho_va_ten').innerText.replace(/[^a-zA-Z0-9_À-ỹ ]/g, "").trim();
-        let fileName = `Phu_Luc_Hop_Dong_${hoTen || 'CTV'}.docx`;
+        const paperElement = document.getElementById('paper');
+        if (!paperElement) {
+            alert("⚠️ Không tìm thấy khung nội dung Phụ Lục để xuất Word!");
+            return;
+        }
 
-        let paperNode = document.getElementById('paper').cloneNode(true);
-        let editableEls = paperNode.querySelectorAll('[contenteditable]');
-        editableEls.forEach(el => {
+        // Tạo bản sao HTML để dọn dẹp các attribute chỉnh sửa
+        let paperClone = paperElement.cloneNode(true);
+        let editables = paperClone.querySelectorAll('[contenteditable]');
+        editables.forEach(el => {
             el.removeAttribute('contenteditable');
             el.style.backgroundColor = 'transparent';
             el.style.border = 'none';
-            el.style.outline = 'none';
         });
 
-        let htmlContent = `
+        let hoTen = document.getElementById('field_Ho_va_ten').innerText.replace(/[^a-zA-Z0-9_À-ỹ ]/g, "").trim();
+        let fileName = `Phu_Luc_Hop_Dong_${hoTen || 'CTV'}.docx`;
+
+        let htmlString = `
             <!DOCTYPE html>
             <html>
             <head>
                 <meta charset="utf-8">
-                <title>Phụ Lục Hợp Đồng</title>
                 <style>
                     body { font-family: "Times New Roman", serif; font-size: 13pt; line-height: 1.4; color: #000; }
                     .paper-header { text-align: center; margin-bottom: 20px; }
@@ -935,187 +894,51 @@ function exportToWord() {
                     .paper-subtitle { font-size: 12pt; font-style: italic; margin-top: 4px; }
                     .bullet-item { margin-bottom: 4px; }
                     .section-header { font-weight: bold; margin-top: 14px; margin-bottom: 6px; }
-                    .data-table { width: 100%; border-collapse: collapse; margin: 12px 0; }
-                    .data-table th, .data-table td { border: 1px solid #000; padding: 6px 8px; font-size: 12pt; }
-                    .data-table th { background-color: #d9d9d9; text-align: center; font-weight: bold; }
+                    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+                    th, td { border: 1px solid #000; padding: 6px 8px; font-size: 12pt; }
+                    th { background-color: #d9d9d9; text-align: center; font-weight: bold; }
                 </style>
             </head>
             <body>
-                ${paperNode.innerHTML}
+                ${paperClone.innerHTML}
             </body>
             </html>
         `;
 
-        let converted = html2docx(htmlContent, {
-            filename: fileName,
-            header: false,
-            footer: false
-        });
-
-        let blob = new Blob([converted], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-        let link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        try {
+            const converted = htmlDocx.asBlob(htmlString);
+            saveAs(converted, fileName);
+        } catch (e) {
+            alert("Lỗi khi kết xuất file Word: " + e.message);
+        }
     }
 
-    function generateShareableLink() {
+    // 🔴 HÀM LƯU TIẾN ĐỘ SANG GOOGLE SHEETS
+    function luuTienDoLenSheet() {
         if (!globalData || globalData.length === 0) {
-            alert("Vui lòng tải file Excel lên trước khi tạo link chia sẻ!");
+            alert("⚠️ Chưa có dữ liệu Excel! Bạn hãy tải file Excel lên web trước.");
             return;
         }
 
-        const jsonStr = JSON.stringify(globalData);
-        const encodedStr = encodeURIComponent(jsonStr);
-        const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encodedStr}`;
+        const dataToSend = globalData.map(item => ({
+            name: item.hoTen,
+            hdOK: item.hdOk,
+            daIn: item.daIn
+        }));
 
-        document.getElementById('shareUrlInput').value = shareUrl;
-        document.getElementById('shareModal').style.display = 'flex';
-    }
-
-    function closeModal() {
-        document.getElementById('shareModal').style.display = 'none';
-    }
-
-    function copyShareUrl() {
-        const input = document.getElementById('shareUrlInput');
-        input.select();
-        document.execCommand('copy');
-        alert("Đã sao chép liên kết vào bộ nhớ tạm! Bạn có thể dán liên kết này gửi cho Sếp xem toàn bộ danh sách hợp đồng CTV.");
+        fetch(GOOGLE_SHEET_API, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ list: dataToSend })
+        })
+        .then(() => {
+            alert("✅ ĐÃ LƯU TIẾN ĐỘ THÀNH CÔNG! Mời bạn kiểm tra Google Sheet.");
+        })
+        .catch(err => {
+            alert("❌ Lỗi gửi dữ liệu: " + err);
+        });
     }
 </script>
 </body>
 </html>
-<!-- 1. Nhúng thư viện nén lz-string từ CDN -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
-
-<script>
-<script>
-// 🔴 DÁN LINK WEB APP GOOGLE SCRIPT CỦA BẠN VÀO ĐÂY
-const GOOGLE_SHEET_API = "https://script.google.com/macros/s/AKfycb.../exec";
-
-function luuTienDoLenSheet() {
-    let sourceData = [];
-
-    // 1. Cào trực tiếp dữ liệu từ bảng Checklist (Menu 2) trên giao diện
-    const rows = document.querySelectorAll('.checklist-container tr, table tr');
-    
-    rows.forEach((row) => {
-        const cells = row.querySelectorAll('td');
-        if (cells.length >= 2) {
-            // Lấy tên CTV từ cột thứ 2
-            const name = cells[1] ? cells[1].innerText.trim() : '';
-            // Lấy trạng thái của 2 ô Checkbox
-            const checkboxes = row.querySelectorAll('input[type="checkbox"]');
-            
-            if (name && !name.includes("Họ & Tên")) {
-                sourceData.push({
-                    name: name,
-                    hdOK: checkboxes[0] ? checkboxes[0].checked : false,
-                    daIn: checkboxes[1] ? checkboxes[1].checked : false
-                });
-            }
-        }
-    });
-
-    // 2. Nếu quét bảng vẫn chưa thấy, thử lấy biến tạm trong hệ thống
-    if (sourceData.length === 0) {
-        if (typeof excelData !== 'undefined') sourceData = excelData;
-        else if (typeof ctvList !== 'undefined') sourceData = ctvList;
-        else if (typeof data !== 'undefined') sourceData = data;
-    }
-
-    if (sourceData.length === 0) {
-        alert("⚠️ Không tìm thấy dữ liệu trên màn hình! Bạn hãy tải file Excel lên trước.");
-        return;
-    }
-
-    // 3. Gửi sang Google Sheets
-    fetch(GOOGLE_SHEET_API, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ list: sourceData })
-    })
-    .then(() => {
-        alert("✅ ĐÃ LƯU TIẾN ĐỘ THÀNH CÔNG! Bạn hãy kiểm tra lại tab Google Sheet.");
-    })
-    .catch(err => {
-        alert("❌ Lỗi gửi dữ liệu: " + err);
-    });
-}
-</script>    // Copy link vào clipboard để gửi cho Sếp/Đồng nghiệp
-    navigator.clipboard.writeText(shareableURL).then(() => {
-        alert("Đã tạo và copy link chia sẻ thành công!");
-    });
-
-    console.log("Link chia sẻ:", shareableURL);
-}
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
-
-<script>
-// 🔴 DÁN LINK WEB APP GOOGLE SCRIPT CỦA BẠN VÀO ĐÂY
-const GOOGLE_SHEET_API = "https://script.google.com/macros/s/AKfycbxNIAsez7MLo2eL58tRLoFswavZy729Gm5pJju7K0IA-71vhQhrJw_jsmVoCMuX7IALLA/exec";
-function luuTienDoLenSheet() {
-    let sourceData = [];
-
-    // Tự động quét tìm biến chứa danh sách CTV trên web của bạn
-    if (typeof window.excelData !== 'undefined' && Array.isArray(window.excelData)) sourceData = window.excelData;
-    else if (typeof window.ctvList !== 'undefined' && Array.isArray(window.ctvList)) sourceData = window.ctvList;
-    else if (typeof window.data !== 'undefined' && Array.isArray(window.data)) sourceData = window.data;
-    else if (typeof window.listCTV !== 'undefined' && Array.isArray(window.listCTV)) sourceData = window.listCTV;
-
-    // Nếu không tìm thấy biến, lấy dữ liệu trực tiếp từ Bảng Checklist (Menu 2) trên giao diện
-    if (sourceData.length === 0) {
-        const rows = document.querySelectorAll('#checklistTable tbody tr, .checklist-row, table tr');
-        rows.forEach((row, idx) => {
-            const cells = row.querySelectorAll('td');
-            if (cells.length >= 2) {
-                const name = cells[1] ? cells[1].innerText.trim() : '';
-                const chkOK = row.querySelector('input[type="checkbox"]:nth-of-type(1)');
-                const chkIn = row.querySelector('input[type="checkbox"]:nth-of-type(2)');
-                if (name && name !== "Họ & Tên CTV") {
-                    sourceData.push({
-                        name: name,
-                        hdOK: chkOK ? chkOK.checked : false,
-                        daIn: chkIn ? chkIn.checked : false
-                    });
-                }
-            }
-        });
-    } else {
-        // Chuẩn hóa dữ liệu từ biến
-        sourceData = sourceData.map((item, index) => {
-            let state = (typeof window.checklistState !== 'undefined' && window.checklistState[index]) ? window.checklistState[index] : {};
-            return {
-                name: item["Họ & Tên CTV"] || item["Tên CTV"] || item.name || "CTV " + (index + 1),
-                hdOK: item.hdOK || state.hdOK || false,
-                daIn: item.daIn || state.daIn || false
-            };
-        });
-    }
-
-    if (sourceData.length === 0) {
-        alert("⚠️ Chưa tìm thấy dữ liệu CTV! Hãy đảm bảo bạn đã tải file Excel lên.");
-        return;
-    }
-
-    // Gửi sang Google Sheets
-    fetch(GOOGLE_SHEET_API, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ list: sourceData })
-    })
-    .then(() => {
-        alert("✅ ĐÃ GỬI TIẾN ĐỘ THÀNH CÔNG! Hãy sang tab Google Sheet kiểm tra.");
-    })
-    .catch(err => {
-        alert("❌ Lỗi gửi: " + err);
-    });
-}
-</script>
-</script>
