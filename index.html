@@ -6,9 +6,36 @@
     <title>Tool Quản Lý, Điền, Sửa & Chia Sẻ Phụ Lục HĐ CTV</title>
     <!-- SheetJS CDN for reading Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- html2docx CDN for exporting to Word docx -->
-    <script src="https://cdn.jsdelivr.net/npm/html2docx@1.5.0/dist/html2docx.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+   <!-- html2docx CDN for exporting to Word docx -->
+<script src="https://cdn.jsdelivr.net/npm/html2docx@1.5.0/dist/html2docx.min.js"></script>
+   <script>
+function exportToWord() {
+    const previewElement = document.getElementById('phuLucPreview') || document.querySelector('.phu-luc-content') || document.querySelector('.paper-preview');
+    
+    if (!previewElement) {
+        alert("⚠️ Không tìm thấy khung nội dung Phụ Lục để xuất Word!");
+        return;
+    }
+
+    // Lấy tên CTV để đặt tên file
+    let ctvName = "Phu_Luc_HD";
+    const nameInput = document.getElementById('ctvNameInput') || document.querySelector('input[value]');
+    if (nameInput && nameInput.value) ctvName = nameInput.value.replace(/\s+/g, '_');
+
+    const opt = {
+        margin: 12,
+        filename: `Phu_Luc_${ctvName}.docx`,
+        header: true,
+        footer: true
+    };
+
+    if (typeof html2docx !== 'undefined') {
+        html2docx(previewElement, opt);
+    } else {
+        alert("❌ Thư viện xuất Word chưa được nạp. Hãy kiểm tra lại kết nối mạng hoặc thẻ script html2docx!");
+    }
+}
+</script>
     <style>
         :root {
             --primary: #1e3a8a;
