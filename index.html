@@ -1,944 +1,804 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tool Quản Lý, Điền, Sửa & Chia Sẻ Phụ Lục HĐ CTV</title>
-    
-    <!-- 1. SheetJS CDN để đọc file Excel -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    
-    <!-- 2. Thư viện xuất File Word (.docx) chuẩn không bị lỗi layout -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <script src="https://unpkg.com/html-docx-js/dist/html-docx.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>Tool Phụ Lục Hợp Đồng CTV - A4/Word chuẩn</title>
 
-    <style>
-        :root {
-            --primary: #1e3a8a;
-            --primary-hover: #1e40af;
-            --bg-main: #f1f5f9;
-            --card-bg: #ffffff;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --border: #cbd5e1;
-            --accent: #2563eb;
-            --success: #16a34a;
-            --warning: #d97706;
-            --purple: #7c3aed;
-        }
+  <!-- Excel -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Word OOXML thật: ổn định hơn HTML -> DOCX -->
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+  <style>
+    :root {
+      --primary:#1e3a8a; --primary-hover:#1e40af; --accent:#2563eb;
+      --success:#16833a; --purple:#6d28d9; --warning:#b45309;
+      --bg:#eef3f8; --card:#fff; --text:#0f172a; --muted:#64748b;
+      --border:#cbd5e1; --edit:#fff7bd; --missing:#fee2e2;
+    }
+    * { box-sizing:border-box; }
+    html, body { margin:0; padding:0; }
+    body {
+      background:var(--bg); color:var(--text); padding:18px;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      font-size:14px;
+    }
+    .app { max-width:1530px; margin:0 auto; }
+    header {
+      display:flex; align-items:flex-end; justify-content:space-between;
+      gap:16px; flex-wrap:wrap; border-bottom:2px solid var(--border);
+      padding-bottom:12px; margin-bottom:18px;
+    }
+    h1 { margin:0; font-size:22px; color:var(--primary); }
+    .subtitle { margin:5px 0 0; color:var(--muted); font-size:13px; }
+    .version { color:var(--muted); font-size:12px; white-space:nowrap; }
+    .layout { display:grid; grid-template-columns:390px minmax(0,1fr); gap:18px; align-items:start; }
+    .sidebar { position:sticky; top:12px; max-height:calc(100vh - 24px); overflow:auto; padding-right:3px; }
+    .card {
+      background:var(--card); border:1px solid var(--border); border-radius:9px;
+      padding:14px; margin-bottom:14px; box-shadow:0 1px 3px rgba(15,23,42,.05);
+    }
+    .card-title { font-weight:800; color:var(--primary); margin-bottom:10px; display:flex; gap:8px; justify-content:space-between; align-items:center; }
+    .tiny { font-size:11px; color:var(--muted); font-weight:500; }
+    .upload {
+      border:2px dashed var(--accent); background:#eff6ff; padding:14px 10px;
+      text-align:center; border-radius:7px; cursor:pointer; color:var(--primary); font-weight:700;
+    }
+    input[type=file] { display:none; }
+    .row { display:flex; gap:8px; }
+    .row > * { flex:1; }
+    .form-group { margin-bottom:9px; }
+    label { display:block; font-size:12px; font-weight:700; margin-bottom:4px; }
+    input[type=text], input[type=search], select, textarea {
+      width:100%; border:1px solid var(--border); border-radius:5px; padding:7px 9px;
+      font:inherit; font-size:13px; background:white; outline:none;
+    }
+    textarea { min-height:68px; resize:vertical; }
+    input:focus, select:focus, textarea:focus { border-color:var(--accent); box-shadow:0 0 0 2px rgba(37,99,235,.12); }
+    .status-strip { display:flex; gap:14px; background:#f8fafc; border:1px solid #e2e8f0; padding:8px 10px; border-radius:6px; margin-bottom:10px; }
+    .status-strip label { margin:0; display:flex; align-items:center; gap:6px; cursor:pointer; }
+    .checklist-wrap { max-height:245px; overflow:auto; border:1px solid var(--border); border-radius:6px; }
+    table.checklist { width:100%; border-collapse:collapse; font-size:12px; }
+    .checklist th { position:sticky; top:0; z-index:2; background:#e2e8f0; padding:7px 6px; text-align:left; }
+    .checklist td { border-bottom:1px solid #eef2f7; padding:6px; }
+    .checklist tr { cursor:pointer; }
+    .checklist tr:hover { background:#f8fafc; }
+    .checklist tr.active { background:#dbeafe; font-weight:700; }
+    .btns { display:grid; gap:8px; margin-top:12px; }
+    button {
+      border:0; border-radius:6px; padding:10px 12px; font:inherit; font-size:13px;
+      font-weight:800; cursor:pointer; color:#fff; background:var(--primary);
+    }
+    button:hover { filter:brightness(.96); }
+    button:disabled { opacity:.55; cursor:wait; }
+    .btn-green { background:var(--success); }
+    .btn-purple { background:var(--purple); }
+    .btn-gray { background:#475569; }
+    .print-note { color:var(--muted); font-size:11px; line-height:1.4; margin-top:8px; }
+    .notice {
+      background:#fff8db; border:1px solid #f59e0b; color:#713f12; border-radius:7px;
+      padding:9px 12px; margin-bottom:12px; font-size:12px;
+    }
+    .paper-stage { overflow:auto; padding:0 4px 20px; }
 
-        body {
-            background-color: var(--bg-main);
-            color: var(--text-main);
-            padding: 20px;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            font-size: 14px;
-        }
+    /* A4 thật trên màn hình: 210 x 297 mm, lề nội dung 15 mm */
+    #paper {
+      width:210mm; min-height:297mm; margin:0 auto; padding:15mm;
+      background:white; border:1px solid #cbd5e1; box-shadow:0 5px 18px rgba(15,23,42,.09);
+      font-family:"Times New Roman",Times,serif; font-size:13pt; line-height:1.15; color:#000;
+    }
+    #paper p { margin:0 0 4pt; }
+    .paper-header { text-align:center; margin-bottom:10pt; }
+    .paper-title { font-size:16pt; font-weight:700; text-transform:uppercase; margin-bottom:2pt; }
+    .paper-subtitle { font-size:12pt; font-style:italic; }
+    .bullet-item { position:relative; padding-left:18pt; margin-bottom:3pt; }
+    .bullet-item::before { content:"–"; position:absolute; left:0; top:0; }
+    .section-header { font-weight:700; margin:8pt 0 3pt; }
+    .indent { padding-left:18pt; }
+    .justify { text-align:justify; text-indent:22pt; }
+    .info-grid { display:grid; grid-template-columns:58% 42%; gap:0; margin-bottom:4pt; }
+    .info-grid > div { min-width:0; }
+    .signature-block { display:grid; grid-template-columns:1fr 1fr; gap:20mm; margin-top:20pt; text-align:center; page-break-inside:avoid; break-inside:avoid; }
+    .signature-space { height:28mm; }
+    .editable-field { background:var(--edit); border-bottom:1px dashed #d29c05; padding:0 1px; outline:none; }
+    .editable-field.missing { background:var(--missing); border-bottom-color:#dc2626; }
+    [contenteditable=true]:hover { outline:1px dashed rgba(202,138,4,.7); outline-offset:1px; }
+    .data-table { width:100%; border-collapse:collapse; table-layout:fixed; margin:8pt 0 9pt; }
+    .data-table th, .data-table td { border:1px solid #000; padding:4pt 5pt; font-size:12pt; vertical-align:middle; }
+    .data-table th { background:#d9d9d9; text-align:center; font-weight:700; }
+    .data-table tr { page-break-inside:avoid; break-inside:avoid; }
+    .w35{width:35%}.w15{width:15%}.w18{width:18%}.w12{width:12%}.w20{width:20%}
 
-        .container {
-            max-width: 1500px;
-            margin: 0 auto;
-        }
+    @media(max-width:1100px){
+      .layout{grid-template-columns:1fr}.sidebar{position:static;max-height:none}.paper-stage{padding-bottom:10px}
+    }
+    @media(max-width:850px){
+      body{padding:8px} #paper{width:210mm; transform-origin:top left;} .paper-stage{overflow-x:auto}
+    }
 
-        header {
-            margin-bottom: 20px;
-            border-bottom: 2px solid var(--border);
-            padding-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-
-        h1 {
-            font-size: 22px;
-            color: var(--primary);
-        }
-
-        .subtitle {
-            color: var(--text-muted);
-            font-size: 13px;
-        }
-
-        .grid-layout {
-            display: grid;
-            grid-template-columns: 420px 1fr;
-            gap: 20px;
-        }
-
-        @media (max-width: 1100px) {
-            .grid-layout {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .card {
-            background: var(--card-bg);
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            padding: 16px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            margin-bottom: 16px;
-        }
-
-        .card-title {
-            font-size: 15px;
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .file-upload-area {
-            border: 2px dashed var(--accent);
-            border-radius: 6px;
-            padding: 14px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            background: #eff6ff;
-        }
-
-        .file-upload-area:hover {
-            background: #dbeafe;
-        }
-
-        input[type="file"] {
-            display: none;
-        }
-
-        .form-group {
-            margin-bottom: 10px;
-        }
-
-        label {
-            display: block;
-            font-size: 12px;
-            font-weight: 600;
-            margin-bottom: 4px;
-            color: var(--text-main);
-        }
-
-        input[type="text"], select, textarea {
-            width: 100%;
-            padding: 6px 10px;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            font-size: 13px;
-            outline: none;
-            transition: border 0.2s;
-        }
-
-        textarea {
-            resize: vertical;
-            min-height: 45px;
-        }
-
-        input[type="text"]:focus, select:focus, textarea:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 2px rgba(37,99,235,0.1);
-        }
-
-        .checklist-table-wrapper {
-            max-height: 240px;
-            overflow-y: auto;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            margin-top: 8px;
-        }
-
-        .checklist-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 12px;
-        }
-
-        .checklist-table th {
-            position: sticky;
-            top: 0;
-            background: #e2e8f0;
-            color: var(--text-main);
-            padding: 8px;
-            text-align: left;
-            font-weight: 700;
-            z-index: 10;
-        }
-
-        .checklist-table td {
-            padding: 6px 8px;
-            border-bottom: 1px solid #f1f5f9;
-        }
-
-        .checklist-table tr.active-row {
-            background-color: #dbeafe !important;
-            font-weight: 600;
-        }
-
-        .checklist-table tr:hover {
-            background-color: #f8fafc;
-        }
-
-        .btn-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-top: 16px;
-        }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            width: 100%;
-            padding: 10px 14px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-            text-decoration: none;
-        }
-
-        .btn:hover {
-            background: var(--primary-hover);
-        }
-
-        .btn-success {
-            background: var(--success);
-        }
-
-        .btn-success:hover {
-            background: #15803d;
-        }
-
-        .btn-purple {
-            background: var(--purple);
-        }
-
-        .btn-purple:hover {
-            background: #6d28d9;
-        }
-
-        /* KHUNG VĂN BẢN TRÊN WEB */
-        .paper-container {
-            background: #fff;
-            padding: 40px 60px;
-            border: 1px solid #cbd5e1;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            font-family: "Times New Roman", Times, serif;
-            font-size: 13pt;
-            line-height: 1.4;
-            color: #000;
-            min-height: 1000px;
-        }
-
-        .editable-field {
-            background-color: #fef9c3;
-            border-bottom: 1px dashed #ca8a04;
-            padding: 0 2px;
-            outline: none;
-            transition: background 0.2s;
-        }
-
-        .editable-field:focus {
-            background-color: #fef08a;
-            border-bottom: 2px solid #a16207;
-        }
-
-        [contenteditable="true"]:hover {
-            outline: 1px dashed #ca8a04;
-        }
-
-        .paper-header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .paper-title {
-            font-weight: bold;
-            font-size: 16pt;
-            text-transform: uppercase;
-        }
-
-        .paper-subtitle {
-            font-size: 12pt;
-            font-style: italic;
-            margin-top: 4px;
-        }
-
-        .bullet-item {
-            position: relative;
-            padding-left: 20px;
-            margin-bottom: 4px;
-        }
-
-        .bullet-item::before {
-            content: "–";
-            position: absolute;
-            left: 0;
-        }
-
-        .section-header {
-            font-weight: bold;
-            margin-top: 14px;
-            margin-bottom: 6px;
-        }
-
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 12px 0;
-        }
-
-        .data-table th, .data-table td {
-            border: 1px solid #000;
-            padding: 6px 8px;
-            font-size: 12pt;
-            vertical-align: middle;
-        }
-
-        .data-table th {
-            background-color: #d9d9d9;
-            text-align: center;
-            font-weight: bold;
-        }
-
-        .no-print {
-            display: block;
-        }
-
-        /* 🔴 CSS CẤU HÌNH IN VÀ TẢI FILE PDF CHUẨN KHỔ A4 (KHÔNG TRÀN VIỀN/RÁCH LAYOUT) */
-        @media print {
-            @page {
-                size: A4 portrait;
-                margin: 15mm 15mm 15mm 15mm;
-            }
-
-            body {
-                background: white !important;
-                padding: 0 !important;
-                margin: 0 !important;
-                font-family: "Times New Roman", Times, serif !important;
-            }
-
-            .no-print, header, .grid-layout > div:first-child, .btn-group, #shareModal {
-                display: none !important;
-            }
-
-            .grid-layout {
-                display: block !important;
-            }
-
-            .paper-container {
-                box-shadow: none !important;
-                border: none !important;
-                padding: 0 !important;
-                margin: 0 !important;
-                width: 100% !important;
-                min-height: auto !important;
-            }
-
-            .editable-field {
-                background: transparent !important;
-                border: none !important;
-            }
-
-            table.data-table {
-                width: 100% !important;
-                page-break-inside: avoid;
-            }
-
-            th, td {
-                word-break: break-word;
-            }
-        }
-    </style>
+    /* Nếu người dùng Ctrl/Cmd+P trực tiếp trên trang, vẫn chỉ in văn bản */
+    @media print {
+      @page { size:A4 portrait; margin:15mm; }
+      body { background:#fff !important; padding:0 !important; margin:0 !important; }
+      header,.sidebar,.notice,.no-print { display:none !important; }
+      .layout { display:block !important; }
+      .paper-stage { overflow:visible !important; padding:0 !important; }
+      #paper { width:auto !important; min-height:auto !important; padding:0 !important; margin:0 !important; border:0 !important; box-shadow:none !important; }
+      .editable-field { background:transparent !important; border:0 !important; }
+      [contenteditable=true] { outline:none !important; }
+      .data-table thead { display:table-header-group; }
+      .data-table tr,.signature-block { break-inside:avoid; page-break-inside:avoid; }
+    }
+  </style>
 </head>
 <body>
-<div class="container">
-    <header class="no-print">
-        <div>
-            <h1>Tool Quản Lý, Điền, Chỉnh Sửa & Chia Sẻ Phụ Lục HĐ CTV</h1>
-            <p class="subtitle">Tự động điền dữ liệu, chỉnh sửa trực tiếp toàn bộ văn bản, quản lý checklist và lưu tiến độ</p>
-        </div>
-    </header>
-
-    <div class="grid-layout">
-        <div class="no-print">
-            <div class="card">
-                <div class="card-title">1. Nhập File Excel</div>
-                <div class="file-upload-area" onclick="document.getElementById('excelFile').click()">
-                    <span id="fileName" style="font-weight:600; color:var(--primary);">📁 Tải file Excel (.xlsx) lên</span>
-                    <input type="file" id="excelFile" accept=".xlsx, .xls" onchange="handleFileSelect(event)">
-                </div>
-            </div>
-
-            <div class="card" id="controlCard" style="display: none;">
-                <div class="card-title">
-                    <span>2. Danh Sách & Checklist Tiến Độ</span>
-                    <span id="statsSummary" style="font-size:11px; font-weight:normal; color:var(--text-muted);"></span>
-                </div>
-
-                <div class="checklist-table-wrapper">
-                    <table class="checklist-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 35px;">STT</th>
-                                <th>Họ & Tên CTV</th>
-                                <th style="width: 55px; text-align:center;">HĐ OK</th>
-                                <th style="width: 55px; text-align:center;">Đã In</th>
-                            </tr>
-                        </thead>
-                        <tbody id="checklistTbody">
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="card-title" style="margin-top:16px;">3. Bảng Chỉnh Sửa Nhanh Trường Dữ Liệu</div>
-                <div class="form-group">
-                    <label>Chọn CTV từ danh sách:</label>
-                    <select id="personSelect" onchange="onSelectPersonChange()"></select>
-                </div>
-
-                <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:8px 10px; border-radius:6px; margin-bottom:10px; display:flex; gap:16px;">
-                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; margin:0; font-size:12px;">
-                        <input type="checkbox" id="chk_hdOk" onchange="updateCurrentChecklistStatus()">
-                        <strong>Hợp đồng OK</strong>
-                    </label>
-                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; margin:0; font-size:12px;">
-                        <input type="checkbox" id="chk_daIn" onchange="updateCurrentChecklistStatus()">
-                        <strong>Đã In Phụ Lục</strong>
-                    </label>
-                </div>
-
-                <div class="form-group">
-                    <label>Tên CTV (Bên B):</label>
-                    <input type="text" id="in_hoTen" oninput="syncField('in_hoTen', ['field_Ho_va_ten', 'field_Ho_va_ten_2', 'field_Ho_va_ten_ky'])">
-                </div>
-                <div class="form-group">
-                    <label>Số Hợp Đồng Gốc:</label>
-                    <input type="text" id="in_soHD" oninput="syncField('in_soHD', ['field_Dinh_kem_so_HD', 'field_Dinh_kem_so_HD_2', 'field_Dinh_kem_so_HD_3', 'field_Dinh_kem_so_HD_4'])">
-                </div>
-                <div class="form-group">
-                    <label>Ngày Ký Hợp Đồng Gốc:</label>
-                    <input type="text" id="in_ngayKyHD" oninput="syncField('in_ngayKyHD', ['field_Ngay_ky_HD', 'field_Ngay_ky_HD_2', 'field_Ngay_ky_HD_3', 'field_Ngay_ky_HD_4'])">
-                </div>
-                <div class="form-group">
-                    <label>Ngày Lập Phụ Lục:</label>
-                    <input type="text" id="in_ngayLapPL" oninput="syncField('in_ngayLapPL', ['field_Ngay_lap_PL'])">
-                </div>
-                <div class="form-group">
-                    <label>Nội Dung Phụ Lục (Hạng mục):</label>
-                    <textarea id="in_noiDungPL" oninput="syncField('in_noiDungPL', ['field_Noi_dung_PL'])"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Tổng Giá Trị Hợp Đồng (Gross):</label>
-                    <input type="text" id="in_tongGiaTri" oninput="syncField('in_tongGiaTri', ['field_Tong_gia_tri_HD_1', 'field_Tong_gia_tri_HD_2'])">
-                </div>
-
-                <div class="btn-group">
-                    <button class="btn btn-success" onclick="exportToWord()">📄 Xuất File WORD (.docx)</button>
-                    <button class="btn" onclick="printAndMarkIn()">🖨️ In / Tải File PDF (Tự đánh dấu Đã In)</button>
-                    <button class="btn btn-purple" onclick="luuTienDoLenSheet()">💾 Lưu Tiến Độ Lên Google Sheet</button>
-                </div>
-            </div>
-        </div>
-
-        <div>
-            <div style="background:#fef3c7; border:1px solid #f59e0b; padding:10px 14px; border-radius:6px; margin-bottom:12px; font-size:13px;" class="no-print">
-                ✏️ <strong>SỬA TRỰC TIẾP TOÀN BỘ VĂN BẢN WORD:</strong> Bạn có thể nhấp chuột trực tiếp vào <strong>bất kỳ câu, từ, đoạn văn hay dòng nào</strong> trên trang giấy bên dưới để gõ sửa/thêm bớt nội dung thiếu trước khi xuất file Word!
-            </div>
-
-            <div class="paper-container" id="paper">
-                <div class="paper-header">
-                    <div class="paper-title" contenteditable="true">PHỤ LỤC SỐ 0<span contenteditable="true" class="editable-field" id="field_Phu_luc_so">1</span></div>
-                    <div class="paper-subtitle" contenteditable="true">(Đính kèm Hợp đồng số : <span contenteditable="true" class="editable-field" id="field_Dinh_kem_so_HD">....................</span> ngày <span contenteditable="true" class="editable-field" id="field_Ngay_ky_HD">....................</span>)</div>
-                </div>
-
-                <div class="bullet-item" contenteditable="true">Căn cứ Hợp đồng dịch vụ số <span contenteditable="true" class="editable-field" id="field_Dinh_kem_so_HD_2">....................</span> được ký vào ngày <span contenteditable="true" class="editable-field" id="field_Ngay_ky_HD_2">....................</span> (“<strong>Hợp đồng</strong>”)</div>
-                <div class="bullet-item" contenteditable="true">Nhu cầu của các Bên</div>
-
-                <p style="margin-top: 10px;" contenteditable="true">Phụ lục Hợp đồng số 0<span contenteditable="true" class="editable-field" id="field_Phu_luc_so_2">1</span> này (Gọi tắt là “<strong>Phụ lục</strong>”) được lập vào ngày: <span contenteditable="true" class="editable-field" id="field_Ngay_lap_PL">....................</span> bởi giữa các bên sau đây:</p>
-
-                <div class="section-header" contenteditable="true">BÊN A (BÊN SỬ DỤNG DỊCH VỤ): CÔNG TY CỔ PHẦN REAL STAKE FINTECH</div>
-                <p contenteditable="true">Địa chỉ : <span contenteditable="true" class="editable-field" id="field_Dia_chi_Cong_ty">Robot Tower, 308-308C Điện Biên Phủ, Phường 4, Quận 3, Thành phố Hồ Chí Minh, Việt Nam</span></p>
-                <p contenteditable="true">Mã số thuế : 0316552631</p>
-                <p contenteditable="true">Đại diện : Ông <span contenteditable="true" class="editable-field" id="field_Ten_giam_doc">NGUYỄN MINH TRUNG</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Chức vụ: <span contenteditable="true" class="editable-field" id="field_Chuc_vu">GIÁM ĐỐC</span></p>
-
-                <div class="section-header" contenteditable="true">BÊN B (BÊN CUNG CẤP DỊCH VỤ): <span contenteditable="true" class="editable-field" id="field_Ho_va_ten">....................</span></div>
-                <p contenteditable="true">Ngày tháng năm sinh : <span contenteditable="true" class="editable-field" id="field_Ngay_sinh">....................</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Giới tính : <span contenteditable="true" class="editable-field" id="field_Gioi_tinh">..........</span></p>
-                <p contenteditable="true">Địa chỉ liên hệ: <span contenteditable="true" class="editable-field" id="field_Dia_chi_lien_he">..................................................</span></p>
-                <p contenteditable="true">Số điện thoại: <span contenteditable="true" class="editable-field" id="field_So_dien_thoai">....................</span></p>
-                <p contenteditable="true">Mã số thuế : <span contenteditable="true" class="editable-field" id="field_Ma_so_thue">....................</span></p>
-                <p contenteditable="true">Số CMND/CCCD: <span contenteditable="true" class="editable-field" id="field_So_CMNDCCCD">....................</span></p>
-                <p contenteditable="true">Số tài khoản ngân hàng: <span contenteditable="true" class="editable-field" id="field_So_tai_khoan">....................</span></p>
-                <p contenteditable="true">Tại ngân hàng: <span contenteditable="true" class="editable-field" id="field_Tai_ngan_hang">....................</span></p>
-
-                <p style="margin-top: 14px;" contenteditable="true">Trong quá trình triển khai hợp đồng dịch vụ số <span contenteditable="true" class="editable-field" id="field_Dinh_kem_so_HD_3">....................</span> ký kết ngày <span contenteditable="true" class="editable-field" id="field_Ngay_ky_HD_3">....................</span>, hai bên đã thống nhất ký Phụ Lục 01 chi tiết nội dung công việc thực hiện giữa các bên như sau:</p>
-
-                <div class="section-header" contenteditable="true">ĐIỀU 1: NỘI DUNG THỰC HIỆN:</div>
-                <p style="padding-left: 20px;" contenteditable="true">Bên A đồng ý giao và bên B đồng ý nhận nội dung công việc như sau :</p>
-
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 35%;" contenteditable="true">Hạng mục</th>
-                            <th style="width: 15%;" contenteditable="true">Đơn vị tính</th>
-                            <th style="width: 18%;" contenteditable="true">Đơn giá (đồng)</th>
-                            <th style="width: 12%;" contenteditable="true">Số lượng</th>
-                            <th style="width: 20%;" contenteditable="true">Thành tiền (đồng)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td contenteditable="true" class="editable-field" id="field_Noi_dung_PL" style="white-space: pre-line;">....................</td>
-                            <td style="text-align:center;" contenteditable="true">Gói <span contenteditable="true" class="editable-field" id="field_So_luong">1</span></td>
-                            <td style="text-align:right;" contenteditable="true" class="editable-field" id="field_Don_vi_tinh">....................</td>
-                            <td style="text-align:center;" contenteditable="true">1</td>
-                            <td style="text-align:right;" contenteditable="true" class="editable-field" id="field_Tong_gia_tri_HD_1">....................</td>
-                        </tr>
-                        <tr>
-                            <td colspan="4" style="text-align: center; font-weight: bold;" contenteditable="true">Tổng giá trị hợp đồng (Đã bao gồm thuế Thu nhập cá nhân 10%)</td>
-                            <td style="text-align:right; font-weight:bold;" contenteditable="true" class="editable-field" id="field_Tong_gia_tri_HD_2">....................</td>
-                        </tr>
-                        <tr>
-                            <td colspan="4" style="text-align: center; font-weight: bold;" contenteditable="true">Thuế Thu nhập cá nhân (Bên A sẽ đóng thay cho bên B)</td>
-                            <td style="text-align:right;" contenteditable="true" class="editable-field" id="field_Thue_TNCN">....................</td>
-                        </tr>
-                        <tr>
-                            <td colspan="4" style="text-align: center; font-weight: bold;" contenteditable="true">Số tiền thực lãnh sau khi trừ thuế thu nhập cá nhân</td>
-                            <td style="text-align:right; font-weight:bold;" contenteditable="true" class="editable-field" id="field_So_tien_thuc_linh">....................</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <div class="section-header" contenteditable="true">ĐIỀU 2: THỜI GIAN THỰC HIỆN:</div>
-                <p style="padding-left: 20px;" contenteditable="true">Thời gian thực hiện từ ngày <span contenteditable="true" class="editable-field" id="field_Tu_ngay">....................</span> Đến ngày <span contenteditable="true" class="editable-field" id="field_Den_ngay">....................</span></p>
-
-                <div class="section-header" contenteditable="true">ĐIỀU 3: THANH TOÁN:</div>
-                <p style="padding-left: 20px;" contenteditable="true">Bên A sẽ thanh toán cho bên B 100% giá trị Hợp đồng sau khi trừ các khoản thuế , phí liên quan trong vòng 10 ngày làm việc kể từ lúc hai bên nghiệm thu kết quả công việc đã nêu.</p>
-
-                <div class="section-header" contenteditable="true">ĐIỀU 4: ĐIỀU KHOẢN CHUNG:</div>
-                <p style="text-indent: 30px; text-align: justify; margin-bottom: 8px;" contenteditable="true">Trường hợp một bên có thay đổi thông tin trong Phụ Lục này sẽ phải thông báo cho bên còn lại chậm nhất trong 03 ngày làm việc kể từ ngày có thay đổi. Mọi trường hợp thiệt hại, mất mát hoặc các vấn đề liên quan dẫn đến chậm trễ thực hiện do lỗi không thông báo thay đổi đúng quy định của Hợp đồng sẽ do bên có thay đổi chịu trách nhiệm. Việc thay đổi sẽ có giá trị ràng buộc bên kia tại thời điểm được đề cập thông báo đó và hai bên sẽ không cần phải lập phụ lục điều chỉnh Phụ Lục này.</p>
-                <p style="text-indent: 30px; text-align: justify; margin-bottom: 8px;" contenteditable="true">Phụ Lục này và các văn bản, thông báo điều chỉnh sau đó sẽ là một phần không tách rời Hợp Đồng Dịch vụ số: <span contenteditable="true" class="editable-field" id="field_Dinh_kem_so_HD_4">....................</span> ký ngày: <span contenteditable="true" class="editable-field" id="field_Ngay_ky_HD_4">....................</span> , bởi Bên A (CÔNG TY CP REAL STAKE FINTECH) và Bên B ( <span contenteditable="true" class="editable-field" id="field_Ho_va_ten_2">....................</span> ) và có giá trị ràng buộc các bên thực hiện.</p>
-                <p style="text-indent: 30px; text-align: justify;" contenteditable="true">Phụ lục này được lập thành 02 (hai) bản có giá trị pháp lý như nhau, mỗi bên giữ 01 (một) bản.</p>
-
-                <div style="margin-top: 30px; display: table; width: 100%;">
-                    <div style="display: table-cell; width: 50%; text-align: center; vertical-align: top;">
-                        <strong contenteditable="true">ĐẠI DIỆN BÊN A</strong>
-                        <br><br><br><br><br>
-                        <strong contenteditable="true" class="editable-field" id="field_Ten_giam_doc_ky">NGUYỄN MINH TRUNG</strong>
-                    </div>
-                    <div style="display: table-cell; width: 50%; text-align: center; vertical-align: top;">
-                        <strong contenteditable="true">BÊN B</strong>
-                        <br><br><br><br><br>
-                        <strong contenteditable="true" class="editable-field" id="field_Ho_va_ten_ky">....................</strong>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="app">
+  <header class="no-print">
+    <div>
+      <h1>Tool Quản Lý & Xuất Phụ Lục Hợp Đồng CTV</h1>
+      <div class="subtitle">Excel → kiểm tra → chỉnh trực tiếp → DOCX OOXML / PDF A4</div>
     </div>
+    <div class="version">v2.0 · A4 210×297 mm · Times New Roman</div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar no-print">
+      <div class="card">
+        <div class="card-title">1. Nhập File Excel</div>
+        <div class="upload" onclick="document.getElementById('excelFile').click()">
+          <span id="fileName">📁 Chọn file Excel (.xlsx/.xls)</span>
+          <input id="excelFile" type="file" accept=".xlsx,.xls" onchange="handleFileSelect(event)" />
+        </div>
+        <div class="tiny" style="margin-top:7px">Tool tự tìm sheet có chữ “Danh sách bổ sung PL”; ngày Excel được chuẩn hóa dd/mm/yyyy.</div>
+      </div>
+
+      <div class="card" id="controlCard" style="display:none">
+        <div class="card-title">
+          <span>2. Danh sách & tiến độ</span>
+          <span class="tiny" id="statsSummary"></span>
+        </div>
+        <div class="form-group"><input type="search" id="searchPerson" placeholder="Tìm tên CTV / số HĐ..." oninput="renderChecklist()" /></div>
+        <div class="checklist-wrap">
+          <table class="checklist">
+            <thead><tr><th style="width:34px">STT</th><th>Họ & tên</th><th style="width:45px;text-align:center">OK</th><th style="width:52px;text-align:center">Đã in</th></tr></thead>
+            <tbody id="checklistBody"></tbody>
+          </table>
+        </div>
+
+        <div class="card-title" style="margin-top:14px">3. Chỉnh nhanh dữ liệu</div>
+        <div class="form-group"><label>Chọn CTV</label><select id="personSelect" onchange="selectPerson(Number(this.value))"></select></div>
+        <div class="status-strip">
+          <label><input type="checkbox" id="chk_hdOk" onchange="updateStatus()"> Hợp đồng OK</label>
+          <label><input type="checkbox" id="chk_daIn" onchange="updateStatus()"> Đã in PL</label>
+        </div>
+        <div class="form-group"><label>Tên CTV (Bên B)</label><input type="text" id="in_hoTen" oninput="quickEdit('hoTen',this.value,['field_Ho_va_ten','field_Ho_va_ten_2','field_Ho_va_ten_ky'])"></div>
+        <div class="form-group"><label>Số Hợp đồng gốc</label><input type="text" id="in_soHD" oninput="quickEdit('dinhKemSoHD',this.value,['field_Dinh_kem_so_HD','field_Dinh_kem_so_HD_2','field_Dinh_kem_so_HD_3','field_Dinh_kem_so_HD_4'])"></div>
+        <div class="row">
+          <div class="form-group"><label>Ngày ký HĐ</label><input type="text" id="in_ngayKyHD" oninput="quickEdit('ngayKyHD',this.value,['field_Ngay_ky_HD','field_Ngay_ky_HD_2','field_Ngay_ky_HD_3','field_Ngay_ky_HD_4'])"></div>
+          <div class="form-group"><label>Ngày lập PL</label><input type="text" id="in_ngayLapPL" oninput="quickEdit('ngayLapPL',this.value,['field_Ngay_lap_PL'])"></div>
+        </div>
+        <div class="form-group"><label>Nội dung phụ lục / Hạng mục</label><textarea id="in_noiDungPL" oninput="quickEdit('noiDungPL',this.value,['field_Noi_dung_PL'])"></textarea></div>
+        <div class="form-group"><label>Tổng giá trị HĐ (Gross)</label><input type="text" id="in_tongGiaTri" oninput="editGross(this.value)"></div>
+
+        <div class="btns">
+          <button class="btn-green" id="btnWord" onclick="exportToWord()">📄 Xuất WORD chuẩn (.docx)</button>
+          <button onclick="printCurrent()">🖨️ In / Lưu PDF A4</button>
+          <button class="btn-gray" onclick="exportProgressExcel()">📊 Xuất file tiến độ (.xlsx)</button>
+          <button class="btn-purple" onclick="syncProgressToGoogleSheet()">💾 Lưu tiến độ lên Google Sheet</button>
+          <button class="btn-gray" onclick="copyShareLink()">🔗 Sao chép link xem CTV hiện tại</button>
+        </div>
+        <div class="print-note"><b>Khi lưu PDF:</b> chọn A4, Scale 100%, tắt “Headers and footers”. Lề 15 mm đã được khóa bằng CSS.</div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="notice no-print">✏️ <b>Có thể sửa trực tiếp trên trang giấy.</b> Khi xuất Word, tool đọc chính nội dung đang hiển thị (kể cả các câu bạn vừa sửa), không chuyển HTML thô sang Word.</div>
+      <div class="paper-stage">
+        <div id="paper">
+          <div class="paper-header">
+            <div class="paper-title" contenteditable="true">PHỤ LỤC SỐ 0<span class="editable-field" id="field_Phu_luc_so" contenteditable="true">1</span></div>
+            <div class="paper-subtitle" contenteditable="true">(Đính kèm Hợp đồng số : <span class="editable-field" id="field_Dinh_kem_so_HD" contenteditable="true">....................</span> ngày <span class="editable-field" id="field_Ngay_ky_HD" contenteditable="true">....................</span>)</div>
+          </div>
+
+          <div class="bullet-item" contenteditable="true">Căn cứ Hợp đồng dịch vụ số <span class="editable-field" id="field_Dinh_kem_so_HD_2" contenteditable="true">....................</span> được ký vào ngày <span class="editable-field" id="field_Ngay_ky_HD_2" contenteditable="true">....................</span> (“<strong>Hợp đồng</strong>”)</div>
+          <div class="bullet-item" contenteditable="true">Nhu cầu của các Bên</div>
+          <p contenteditable="true" style="margin-top:7pt">Phụ lục Hợp đồng số 0<span class="editable-field" id="field_Phu_luc_so_2" contenteditable="true">1</span> này (Gọi tắt là “<strong>Phụ lục</strong>”) được lập vào ngày: <span class="editable-field" id="field_Ngay_lap_PL" contenteditable="true">....................</span> bởi giữa các bên sau đây:</p>
+
+          <div class="section-header" contenteditable="true">BÊN A (BÊN SỬ DỤNG DỊCH VỤ): CÔNG TY CỔ PHẦN REAL STAKE FINTECH</div>
+          <p contenteditable="true">Địa chỉ : <span class="editable-field" id="field_Dia_chi_Cong_ty" contenteditable="true">Robot Tower, 308-308C Điện Biên Phủ, Phường 4, Quận 3, Thành phố Hồ Chí Minh, Việt Nam</span></p>
+          <p contenteditable="true">Mã số thuế : 0316552631</p>
+          <div class="info-grid">
+            <div contenteditable="true">Đại diện : Ông <span class="editable-field" id="field_Ten_giam_doc" contenteditable="true">NGUYỄN MINH TRUNG</span></div>
+            <div contenteditable="true">Chức vụ: <span class="editable-field" id="field_Chuc_vu" contenteditable="true">GIÁM ĐỐC</span></div>
+          </div>
+
+          <div class="section-header" contenteditable="true">BÊN B (BÊN CUNG CẤP DỊCH VỤ): <span class="editable-field" id="field_Ho_va_ten" contenteditable="true">....................</span></div>
+          <div class="info-grid">
+            <div contenteditable="true">Ngày tháng năm sinh : <span class="editable-field" id="field_Ngay_sinh" contenteditable="true">....................</span></div>
+            <div contenteditable="true">Giới tính : <span class="editable-field" id="field_Gioi_tinh" contenteditable="true">..........</span></div>
+          </div>
+          <p contenteditable="true">Địa chỉ liên hệ: <span class="editable-field" id="field_Dia_chi_lien_he" contenteditable="true">..................................................</span></p>
+          <p contenteditable="true">Số điện thoại: <span class="editable-field" id="field_So_dien_thoai" contenteditable="true">....................</span></p>
+          <p contenteditable="true">Mã số thuế : <span class="editable-field" id="field_Ma_so_thue" contenteditable="true">....................</span></p>
+          <p contenteditable="true">Số CMND/CCCD: <span class="editable-field" id="field_So_CMNDCCCD" contenteditable="true">....................</span></p>
+          <p contenteditable="true">Số tài khoản ngân hàng: <span class="editable-field" id="field_So_tai_khoan" contenteditable="true">....................</span></p>
+          <p contenteditable="true">Tại ngân hàng: <span class="editable-field" id="field_Tai_ngan_hang" contenteditable="true">....................</span></p>
+
+          <p contenteditable="true" style="margin-top:8pt">Trong quá trình triển khai hợp đồng dịch vụ số <span class="editable-field" id="field_Dinh_kem_so_HD_3" contenteditable="true">....................</span> ký kết ngày <span class="editable-field" id="field_Ngay_ky_HD_3" contenteditable="true">....................</span>, hai bên đã thống nhất ký Phụ Lục 01 chi tiết nội dung công việc thực hiện giữa các bên như sau:</p>
+          <div class="section-header" contenteditable="true">ĐIỀU 1: NỘI DUNG THỰC HIỆN:</div>
+          <p class="indent" contenteditable="true">Bên A đồng ý giao và bên B đồng ý nhận nội dung công việc như sau :</p>
+
+          <table class="data-table">
+            <thead><tr>
+              <th class="w35" contenteditable="true">Hạng mục</th>
+              <th class="w15" contenteditable="true">Đơn vị tính</th>
+              <th class="w18" contenteditable="true">Đơn giá (đồng)</th>
+              <th class="w12" contenteditable="true">Số lượng</th>
+              <th class="w20" contenteditable="true">Thành tiền (đồng)</th>
+            </tr></thead>
+            <tbody>
+              <tr>
+                <td class="editable-field" id="field_Noi_dung_PL" contenteditable="true" style="white-space:pre-line">....................</td>
+                <td style="text-align:center" contenteditable="true"><span class="editable-field" id="field_Don_vi_tinh" contenteditable="true">Gói</span></td>
+                <td style="text-align:right" class="editable-field" id="field_Don_gia" contenteditable="true">....................</td>
+                <td style="text-align:center" class="editable-field" id="field_So_luong" contenteditable="true">1</td>
+                <td style="text-align:right" class="editable-field" id="field_Tong_gia_tri_HD_1" contenteditable="true">....................</td>
+              </tr>
+              <tr><td colspan="4" style="text-align:center;font-weight:700" contenteditable="true">Tổng giá trị hợp đồng (Đã bao gồm thuế Thu nhập cá nhân 10%)</td><td style="text-align:right;font-weight:700" class="editable-field" id="field_Tong_gia_tri_HD_2" contenteditable="true">....................</td></tr>
+              <tr><td colspan="4" style="text-align:center;font-weight:700" contenteditable="true">Thuế Thu nhập cá nhân (Bên A sẽ đóng thay cho bên B)</td><td style="text-align:right" class="editable-field" id="field_Thue_TNCN" contenteditable="true">....................</td></tr>
+              <tr><td colspan="4" style="text-align:center;font-weight:700" contenteditable="true">Số tiền thực lãnh sau khi trừ thuế thu nhập cá nhân</td><td style="text-align:right;font-weight:700" class="editable-field" id="field_So_tien_thuc_linh" contenteditable="true">....................</td></tr>
+            </tbody>
+          </table>
+
+          <div class="section-header" contenteditable="true">ĐIỀU 2: THỜI GIAN THỰC HIỆN:</div>
+          <p class="indent" contenteditable="true">Thời gian thực hiện từ ngày <span class="editable-field" id="field_Tu_ngay" contenteditable="true">....................</span> Đến ngày <span class="editable-field" id="field_Den_ngay" contenteditable="true">....................</span></p>
+          <div class="section-header" contenteditable="true">ĐIỀU 3: THANH TOÁN:</div>
+          <p class="indent" contenteditable="true">Bên A sẽ thanh toán cho bên B 100% giá trị Hợp đồng sau khi trừ các khoản thuế, phí liên quan trong vòng 10 ngày làm việc kể từ lúc hai bên nghiệm thu kết quả công việc đã nêu.</p>
+          <div class="section-header" contenteditable="true">ĐIỀU 4: ĐIỀU KHOẢN CHUNG:</div>
+          <p class="justify" contenteditable="true">Trường hợp một bên có thay đổi thông tin trong Phụ Lục này sẽ phải thông báo cho bên còn lại chậm nhất trong 03 ngày làm việc kể từ ngày có thay đổi. Mọi trường hợp thiệt hại, mất mát hoặc các vấn đề liên quan dẫn đến chậm trễ thực hiện do lỗi không thông báo thay đổi đúng quy định của Hợp đồng sẽ do bên có thay đổi chịu trách nhiệm. Việc thay đổi sẽ có giá trị ràng buộc bên kia tại thời điểm được đề cập thông báo đó và hai bên sẽ không cần phải lập phụ lục điều chỉnh Phụ Lục này.</p>
+          <p class="justify" contenteditable="true">Phụ Lục này và các văn bản, thông báo điều chỉnh sau đó sẽ là một phần không tách rời Hợp Đồng Dịch vụ số: <span class="editable-field" id="field_Dinh_kem_so_HD_4" contenteditable="true">....................</span> ký ngày: <span class="editable-field" id="field_Ngay_ky_HD_4" contenteditable="true">....................</span>, bởi Bên A (CÔNG TY CP REAL STAKE FINTECH) và Bên B (<span class="editable-field" id="field_Ho_va_ten_2" contenteditable="true">....................</span>) và có giá trị ràng buộc các bên thực hiện.</p>
+          <p class="justify" contenteditable="true">Phụ lục này được lập thành 02 (hai) bản có giá trị pháp lý như nhau, mỗi bên giữ 01 (một) bản.</p>
+
+          <div class="signature-block">
+            <div><strong contenteditable="true">ĐẠI DIỆN BÊN A</strong><div class="signature-space"></div><strong class="editable-field" id="field_Ten_giam_doc_ky" contenteditable="true">NGUYỄN MINH TRUNG</strong></div>
+            <div><strong contenteditable="true">BÊN B</strong><div class="signature-space"></div><strong class="editable-field" id="field_Ho_va_ten_ky" contenteditable="true">....................</strong></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
 </div>
 
 <script>
-    let globalData = [];
-    let currentIdx = 0;
+(() => {
+  'use strict';
 
-    // 🔴 DÁN ĐÚNG URL WEB APP TỪ GMAIL CÁ NHÂN CỦA BẠN VÀO ĐÂY
-    const GOOGLE_SHEET_API = "https://script.google.com/macros/s/AKfycbxNIAsez7MLo2eL58tRLoFswavZy729Gm5pJju7K0IA-71vhQhrJw_jsmVoCMuX7IALLA/exec";
+  const GOOGLE_SHEET_API = 'https://script.google.com/macros/s/AKfycbxNIAsez7MLo2eL58tRLoFswavZy729Gm5pJju7K0IA-71vhQhrJw_jsmVoCMuX7IALLA/exec';
+  const STORAGE_KEY = 'rsf_phu_luc_progress_v2';
+  const A4 = { width:11906, height:16838, margin:850 }; // twips; 850 ≈ 15 mm
+  const CONTENT_WIDTH = A4.width - A4.margin * 2;
+  const COLS = [3572,1531,1837,1225,2041]; // 35/15/18/12/20% of content width
 
-    function handleFileSelect(evt) {
-        const file = evt.target.files[0];
-        if (!file) return;
+  let globalData = [];
+  let currentIdx = -1;
+  let basePaperHTML = '';
 
-        document.getElementById('fileName').innerText = "📄 " + file.name;
+  const $ = id => document.getElementById(id);
+  const text = (id, value) => { const el=$(id); if(el) el.innerText = value ?? ''; };
+  const placeholder = (dots='....................') => dots;
 
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, {type: 'array', cellDates: true});
+  document.addEventListener('DOMContentLoaded', () => {
+    basePaperHTML = $('paper').innerHTML;
+    loadSharedRecordIfAny();
+  });
 
-            let sheet = workbook.Sheets["Đợt 2 - Danh sách bổ sung PL"] || workbook.Sheets["Danh sách bổ sung PL"];
-
-            if (!sheet) {
-                const match = workbook.SheetNames.find(s => s.includes("Danh sách bổ sung PL"));
-                if (match) sheet = workbook.Sheets[match];
-            }
-
-            if (!sheet) {
-                alert("Không tìm thấy sheet 'Đợt 2 - Danh sách bổ sung PL' hoặc 'Danh sách bổ sung PL'!");
-                return;
-            }
-
-            const jsonData = XLSX.utils.sheet_to_json(sheet, {header: 1, raw: false});
-            parseExcelData(jsonData);
-        };
-        reader.readAsArrayBuffer(file);
+  function normalizeHeader(s) {
+    return String(s ?? '').trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/đ/g,'d').replace(/[^a-z0-9]+/g,' ').trim();
+  }
+  function findHeader(headers, aliases) {
+    const normalized = headers.map(normalizeHeader);
+    for (const alias of aliases) {
+      const n = normalizeHeader(alias);
+      let idx = normalized.indexOf(n);
+      if (idx !== -1) return idx;
     }
-
-    function parseExcelData(rows) {
-        if (rows.length < 2) return;
-
-        const headers = rows[0].map(h => String(h || '').trim());
-
-        function getColIdx(colName) {
-            return headers.findIndex(h => h.toLowerCase() === colName.toLowerCase());
-        }
-
-        const idx_stt = getColIdx('STT');
-        const idx_hoTen = getColIdx('Họ và tên');
-        const idx_soHD = getColIdx('Đính kèm số HĐ');
-        const idx_ngayKyHD = getColIdx('Ngày ký HĐ');
-        const idx_phuLucSo = headers.findIndex(h => h.toLowerCase().includes('phụ lục số'));
-        const idx_ngayLapPL = getColIdx('Ngày lập PL');
-        const idx_ngaySinh = getColIdx('Ngày sinh');
-        const idx_gioiTinh = getColIdx('Giới tính');
-        const idx_diaChiLienHe = getColIdx('Địa chỉ liên hệ');
-        const idx_sdt = getColIdx('Số điện thoại');
-        const idx_mst = getColIdx('Mã số thuế');
-        const idx_cmnd = getColIdx('Số CMND/CCCD');
-        const idx_stk = getColIdx('Số tài khoản');
-        const idx_nganHang = getColIdx('Tại ngân hàng');
-        const idx_hangMuc = getColIdx('Hạng mục');
-        const idx_dvt = getColIdx('Đơn vị tính');
-        const idx_donGia = getColIdx('Đơn giá') !== -1 ? getColIdx('Đơn giá') : getColIdx('Tổng giá trị HĐ');
-        const idx_soLuong = getColIdx('Số lượng');
-        const idx_tongGiaTri = getColIdx('Tổng giá trị HĐ');
-        const idx_thueTNCN = getColIdx('Thuế TNCN');
-        const idx_thucLinh = headers.findIndex(h => h.toLowerCase().includes('số tiền thực'));
-        const idx_tuNgay = getColIdx('Từ ngày');
-        const idx_denNgay = getColIdx('Đến ngày');
-        const idx_tenGiamDoc = getColIdx('Tên giám đốc');
-        const idx_chucVu = getColIdx('Chức vụ');
-        const idx_diaChiCongTy = headers.findIndex(h => h.toLowerCase().includes('địa chỉ công ty'));
-        const idx_noiDungPL = getColIdx('Nội dung PL');
-        const idx_check = getColIdx('check');
-
-        globalData = [];
-
-        for (let i = 1; i < rows.length; i++) {
-            const row = rows[i];
-            if (!row || row.length === 0 || !row[idx_hoTen !== -1 ? idx_hoTen : 1]) continue;
-
-            let isOk = false;
-            if (idx_check !== -1 && row[idx_check]) {
-                let valCheck = String(row[idx_check]).toLowerCase();
-                if (valCheck === '1' || valCheck === 'true' || valCheck === 'ok') isOk = true;
-            }
-
-            let item = {
-                stt: row[idx_stt] || i,
-                hoTen: row[idx_hoTen !== -1 ? idx_hoTen : 1] || '',
-                dinhKemSoHD: row[idx_soHD] || '',
-                ngayKyHD: row[idx_ngayKyHD] || '',
-                phuLucSo: row[idx_phuLucSo] || '1',
-                ngayLapPL: row[idx_ngayLapPL] || '',
-                ngaySinh: row[idx_ngaySinh] || '',
-                gioiTinh: row[idx_gioiTinh] || '',
-                diaChiLienHe: row[idx_diaChiLienHe] || '',
-                sdt: row[idx_sdt] || '',
-                mst: row[idx_mst] || '',
-                cmnd: row[idx_cmnd] || '',
-                stk: row[idx_stk] || '',
-                nganHang: row[idx_nganHang] || '',
-                hangMuc: row[idx_hangMuc] || '',
-                dvt: row[idx_dvt] || 'Gói',
-                donGia: row[idx_donGia] || '',
-                soLuong: row[idx_soLuong] || '1',
-                tongGiaTri: row[idx_tongGiaTri] || row[idx_donGia] || '',
-                thueTNCN: row[idx_thueTNCN] || '',
-                thucLinh: row[idx_thucLinh] || '',
-                tuNgay: row[idx_tuNgay] || '',
-                denNgay: row[idx_denNgay] || '',
-                tenGiamDoc: row[idx_tenGiamDoc] && !row[idx_tenGiamDoc].includes('#') ? row[idx_tenGiamDoc] : 'NGUYỄN MINH TRUNG',
-                chucVu: row[idx_chucVu] && !row[idx_chucVu].includes('#') ? row[idx_chucVu] : 'GIÁM ĐÓC',
-                diaChiCongTy: row[idx_diaChiCongTy] && !row[idx_diaChiCongTy].includes('#') ? row[idx_diaChiCongTy] : 'Robot Tower, 308-308C Điện Biên Phủ, Phường 4, Quận 3, Thành phố Hồ Chí Minh, Việt Nam',
-                noiDungPL: row[idx_noiDungPL] || row[idx_hangMuc] || '',
-                hdOk: isOk,
-                daIn: false
-            };
-            globalData.push(item);
-        }
-
-        renderSelectAndChecklistTable();
-        document.getElementById('controlCard').style.display = 'block';
-
-        if (globalData.length > 0) {
-            selectPerson(0);
-        }
+    for (const alias of aliases) {
+      const n = normalizeHeader(alias);
+      let idx = normalized.findIndex(h => h.includes(n) || n.includes(h));
+      if (idx !== -1) return idx;
     }
-
-    function renderSelectAndChecklistTable() {
-        const select = document.getElementById('personSelect');
-        const tbody = document.getElementById('checklistTbody');
-
-        select.innerHTML = '';
-        tbody.innerHTML = '';
-
-        let okCount = 0;
-        let inCount = 0;
-
-        globalData.forEach((item, index) => {
-            if (item.hdOk) okCount++;
-            if (item.daIn) inCount++;
-
-            const opt = document.createElement('option');
-            opt.value = index;
-            opt.innerText = `${index + 1}. ${item.hoTen} (${item.hdOk ? '✓ HĐ OK' : '⏳ Chưa OK'})`;
-            select.appendChild(opt);
-
-            const tr = document.createElement('tr');
-            tr.id = `row_person_${index}`;
-            if (index === currentIdx) tr.classList.add('active-row');
-            tr.onclick = (e) => {
-                if (e.target.tagName !== 'INPUT') selectPerson(index);
-            };
-
-            tr.innerHTML = `
-                <td style="text-align:center;">${index + 1}</td>
-                <td><strong>${item.hoTen}</strong></td>
-                <td style="text-align:center;">
-                    <input type="checkbox" ${item.hdOk ? 'checked' : ''} onchange="toggleTableCheckbox(${index}, 'hdOk', this.checked)">
-                </td>
-                <td style="text-align:center;">
-                    <input type="checkbox" ${item.daIn ? 'checked' : ''} onchange="toggleTableCheckbox(${index}, 'daIn', this.checked)">
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
-
-        document.getElementById('statsSummary').innerText = `OK: ${okCount}/${globalData.length} | Đã In: ${inCount}/${globalData.length}`;
+    return -1;
+  }
+  function cell(row, idx, fallback='') {
+    if (idx < 0 || !row) return fallback;
+    const v = row[idx];
+    return (v === undefined || v === null) ? fallback : String(v).trim();
+  }
+  function safe(v, fallback='') {
+    const s = String(v ?? '').trim();
+    return (!s || /^#(NUM|N\/A|VALUE|REF|DIV\/0|NAME)/i.test(s)) ? fallback : s;
+  }
+  function formatDate(v) {
+    if (v instanceof Date && !isNaN(v)) {
+      return String(v.getDate()).padStart(2,'0')+'/'+String(v.getMonth()+1).padStart(2,'0')+'/'+v.getFullYear();
     }
-
-    function selectPerson(index) {
-        currentIdx = index;
-        document.getElementById('personSelect').value = index;
-
-        document.querySelectorAll('.checklist-table tr').forEach(r => r.classList.remove('active-row'));
-        const row = document.getElementById(`row_person_${index}`);
-        if (row) {
-            row.classList.add('active-row');
-            row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        }
-
-        document.getElementById('chk_hdOk').checked = globalData[index].hdOk;
-        document.getElementById('chk_daIn').checked = globalData[index].daIn;
-
-        renderContract();
+    const s = safe(v,'');
+    if (!s) return '';
+    let m = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+    if (m) return m[3].padStart(2,'0')+'/'+m[2].padStart(2,'0')+'/'+m[1];
+    m = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
+    if (m && Number(m[1]) <= 12 && Number(m[2]) > 12) { // obvious mm/dd/yyyy
+      const yy = m[3].length===2 ? '20'+m[3] : m[3];
+      return m[2].padStart(2,'0')+'/'+m[1].padStart(2,'0')+'/'+yy;
     }
+    return s;
+  }
+  function parseVND(v) {
+    if (typeof v === 'number' && Number.isFinite(v)) return Math.round(v);
+    const s = safe(v,'');
+    if (!s) return null;
+    if (!/[0-9]/.test(s)) return null;
+    const digits = s.replace(/[^0-9-]/g,'');
+    if (!digits || digits==='-') return null;
+    const n = Number(digits);
+    return Number.isFinite(n) ? n : null;
+  }
+  function formatVND(v, blank='') {
+    const n = parseVND(v);
+    if (n === null) return safe(v, blank);
+    return Math.round(n).toLocaleString('vi-VN');
+  }
+  function statusKey(item) {
+    return normalizeHeader(item.hoTen)+'|'+normalizeHeader(item.dinhKemSoHD);
+  }
+  function readStatusStore() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; }
+  }
+  function persistStatuses() {
+    const store = readStatusStore();
+    globalData.forEach(item => { store[statusKey(item)] = {hdOk:!!item.hdOk, daIn:!!item.daIn}; });
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(store)); } catch {}
+  }
 
-    function onSelectPersonChange() {
-        let idx = parseInt(document.getElementById('personSelect').value);
-        selectPerson(idx);
+  window.handleFileSelect = function(evt) {
+    const file = evt.target.files?.[0];
+    if (!file) return;
+    $('fileName').textContent = '📄 '+file.name;
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array', cellDates:true, cellNF:true});
+        let sheetName = wb.SheetNames.find(n => normalizeHeader(n).includes('danh sach bo sung pl')) || wb.SheetNames[0];
+        if (!sheetName) throw new Error('File Excel không có sheet dữ liệu.');
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {header:1, raw:false, dateNF:'dd/mm/yyyy', defval:''});
+        parseExcelData(rows);
+      } catch (err) {
+        alert('Không đọc được file Excel: '+err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  function parseExcelData(rows) {
+    if (!rows || rows.length < 2) return alert('Sheet không có dữ liệu.');
+    const headers = rows[0].map(v => String(v ?? '').trim());
+    const c = {
+      stt:findHeader(headers,['STT']),
+      hoTen:findHeader(headers,['Họ và tên','Họ tên','Tên CTV']),
+      soHD:findHeader(headers,['Đính kèm số HĐ','Số Hợp Đồng Gốc','Số HĐ']),
+      ngayKyHD:findHeader(headers,['Ngày ký HĐ','Ngày Ký Hợp Đồng Gốc']),
+      phuLucSo:findHeader(headers,['Phụ lục số','PL số']),
+      ngayLapPL:findHeader(headers,['Ngày lập PL','Ngày lập Phụ lục']),
+      ngaySinh:findHeader(headers,['Ngày sinh','Ngày tháng năm sinh']),
+      gioiTinh:findHeader(headers,['Giới tính']),
+      diaChi:findHeader(headers,['Địa chỉ liên hệ','Địa chỉ']),
+      sdt:findHeader(headers,['Số điện thoại','Điện thoại','SĐT']),
+      mst:findHeader(headers,['Mã số thuế','MST']),
+      cmnd:findHeader(headers,['Số CMND/CCCD','CMND/CCCD','CCCD']),
+      stk:findHeader(headers,['Số tài khoản','Số tài khoản ngân hàng','STK']),
+      nganHang:findHeader(headers,['Tại ngân hàng','Ngân hàng']),
+      hangMuc:findHeader(headers,['Hạng mục']),
+      noiDungPL:findHeader(headers,['Nội dung PL','Nội dung phụ lục']),
+      dvt:findHeader(headers,['Đơn vị tính']),
+      donGia:findHeader(headers,['Đơn giá']),
+      soLuong:findHeader(headers,['Số lượng']),
+      tongGiaTri:findHeader(headers,['Tổng giá trị HĐ','Tổng Giá Trị Hợp Đồng (Gross)','Tổng giá trị hợp đồng']),
+      thue:findHeader(headers,['Thuế TNCN','Thuế Thu nhập cá nhân']),
+      thucLinh:findHeader(headers,['Số tiền thực lãnh','Số tiền thực lĩnh']),
+      tuNgay:findHeader(headers,['Từ ngày']),
+      denNgay:findHeader(headers,['Đến ngày']),
+      tenGiamDoc:findHeader(headers,['Tên giám đốc','Đại diện']),
+      chucVu:findHeader(headers,['Chức vụ']),
+      diaChiCongTy:findHeader(headers,['Địa chỉ công ty']),
+      check:findHeader(headers,['check','HĐ OK','Hợp đồng OK'])
+    };
+    if (c.hoTen < 0) return alert('Không tìm thấy cột “Họ và tên”. Hãy kiểm tra dòng tiêu đề của Excel.');
+
+    const statusStore = readStatusStore();
+    const parsed = [];
+    for (let r=1; r<rows.length; r++) {
+      const row = rows[r];
+      const hoTen = safe(cell(row,c.hoTen),'');
+      if (!hoTen) continue;
+      let item = {
+        stt:safe(cell(row,c.stt),String(r)), hoTen,
+        dinhKemSoHD:safe(cell(row,c.soHD),''), ngayKyHD:formatDate(cell(row,c.ngayKyHD)),
+        phuLucSo:safe(cell(row,c.phuLucSo),'1').replace(/\.0$/,''), ngayLapPL:formatDate(cell(row,c.ngayLapPL)),
+        ngaySinh:formatDate(cell(row,c.ngaySinh)), gioiTinh:safe(cell(row,c.gioiTinh),''),
+        diaChiLienHe:safe(cell(row,c.diaChi),''), sdt:safe(cell(row,c.sdt),''), mst:safe(cell(row,c.mst),''),
+        cmnd:safe(cell(row,c.cmnd),''), stk:safe(cell(row,c.stk),''), nganHang:safe(cell(row,c.nganHang),''),
+        hangMuc:safe(cell(row,c.hangMuc),''), noiDungPL:safe(cell(row,c.noiDungPL),safe(cell(row,c.hangMuc),'')),
+        dvt:safe(cell(row,c.dvt),'Gói'), donGia:safe(cell(row,c.donGia),safe(cell(row,c.tongGiaTri),'')),
+        soLuong:safe(cell(row,c.soLuong),'1'), tongGiaTri:safe(cell(row,c.tongGiaTri),safe(cell(row,c.donGia),'')),
+        thueTNCN:safe(cell(row,c.thue),''), thucLinh:safe(cell(row,c.thucLinh),''),
+        tuNgay:formatDate(cell(row,c.tuNgay)), denNgay:formatDate(cell(row,c.denNgay)),
+        tenGiamDoc:safe(cell(row,c.tenGiamDoc),'NGUYỄN MINH TRUNG'), chucVu:safe(cell(row,c.chucVu),'GIÁM ĐỐC'),
+        diaChiCongTy:safe(cell(row,c.diaChiCongTy),'Robot Tower, 308-308C Điện Biên Phủ, Phường 4, Quận 3, Thành phố Hồ Chí Minh, Việt Nam'),
+        hdOk:false, daIn:false, customHTML:null
+      };
+      const excelCheck = normalizeHeader(cell(row,c.check));
+      if (['1','true','ok','x','yes','da ok'].includes(excelCheck)) item.hdOk = true;
+      const old = statusStore[statusKey(item)];
+      if (old) { item.hdOk=!!old.hdOk; item.daIn=!!old.daIn; }
+      calculateTaxIfNeeded(item);
+      parsed.push(item);
     }
+    globalData = parsed;
+    $('controlCard').style.display = globalData.length ? 'block' : 'none';
+    renderSelect(); renderChecklist();
+    if (globalData.length) selectPerson(0); else alert('Không tìm thấy dòng CTV hợp lệ.');
+  }
 
-    function toggleTableCheckbox(index, field, checked) {
-        globalData[index][field] = checked;
-        if (index === currentIdx) {
-            if (field === 'hdOk') document.getElementById('chk_hdOk').checked = checked;
-            if (field === 'daIn') document.getElementById('chk_daIn').checked = checked;
-        }
-        renderSelectAndChecklistTable();
+  function calculateTaxIfNeeded(item) {
+    const gross = parseVND(item.tongGiaTri || item.donGia);
+    if (gross !== null) {
+      if (parseVND(item.thueTNCN) === null) item.thueTNCN = String(Math.round(gross * 0.10));
+      const tax = parseVND(item.thueTNCN);
+      if (parseVND(item.thucLinh) === null && tax !== null) item.thucLinh = String(gross - tax);
     }
+  }
 
-    function updateCurrentChecklistStatus() {
-        if (!globalData[currentIdx]) return;
-        globalData[currentIdx].hdOk = document.getElementById('chk_hdOk').checked;
-        globalData[currentIdx].daIn = document.getElementById('chk_daIn').checked;
-        renderSelectAndChecklistTable();
+  function renderSelect() {
+    const sel=$('personSelect'); sel.innerHTML='';
+    globalData.forEach((it,i) => {
+      const o=document.createElement('option'); o.value=i;
+      o.textContent=`${i+1}. ${it.hoTen} ${it.hdOk?'✓':'⏳'}`; sel.appendChild(o);
+    });
+  }
+  window.renderChecklist = function() {
+    const tbody=$('checklistBody'); tbody.innerHTML='';
+    const q=normalizeHeader($('searchPerson')?.value || '');
+    let ok=0, printed=0;
+    globalData.forEach((it,i) => {
+      if(it.hdOk) ok++; if(it.daIn) printed++;
+      if(q && !normalizeHeader(it.hoTen+' '+it.dinhKemSoHD).includes(q)) return;
+      const tr=document.createElement('tr'); tr.className=i===currentIdx?'active':'';
+      tr.onclick=e => { if(e.target.tagName!=='INPUT') selectPerson(i); };
+      tr.innerHTML=`<td style="text-align:center">${i+1}</td><td>${escapeHtml(it.hoTen)}</td>
+        <td style="text-align:center"><input type="checkbox" ${it.hdOk?'checked':''} onclick="event.stopPropagation()" onchange="toggleRow(${i},'hdOk',this.checked)"></td>
+        <td style="text-align:center"><input type="checkbox" ${it.daIn?'checked':''} onclick="event.stopPropagation()" onchange="toggleRow(${i},'daIn',this.checked)"></td>`;
+      tbody.appendChild(tr);
+    });
+    $('statsSummary').textContent=`OK ${ok}/${globalData.length} · Đã in ${printed}/${globalData.length}`;
+  };
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  window.toggleRow = function(i, field, checked){
+    globalData[i][field]=checked; persistStatuses();
+    if(i===currentIdx){ $('chk_hdOk').checked=globalData[i].hdOk; $('chk_daIn').checked=globalData[i].daIn; }
+    renderSelect(); renderChecklist();
+  };
+  window.updateStatus = function(){
+    if(currentIdx<0) return;
+    globalData[currentIdx].hdOk=$('chk_hdOk').checked; globalData[currentIdx].daIn=$('chk_daIn').checked;
+    persistStatuses(); renderSelect(); renderChecklist();
+  };
+
+  function saveCurrentSnapshot() {
+    if(currentIdx < 0 || !globalData[currentIdx]) return;
+    captureFieldsToItem(globalData[currentIdx]);
+    globalData[currentIdx].customHTML = $('paper').innerHTML;
+  }
+
+  window.selectPerson = function(i) {
+    if (!Number.isInteger(i) || !globalData[i]) return;
+    if(currentIdx>=0 && currentIdx!==i) saveCurrentSnapshot();
+    currentIdx=i;
+    $('personSelect').value=String(i);
+    const item=globalData[i];
+    $('paper').innerHTML = item.customHTML || basePaperHTML;
+    fillPaper(item);
+    fillQuickInputs(item);
+    $('chk_hdOk').checked=!!item.hdOk; $('chk_daIn').checked=!!item.daIn;
+    renderChecklist();
+  };
+
+  function fillPaper(item) {
+    calculateTaxIfNeeded(item);
+    const soHD=safe(item.dinhKemSoHD,placeholder());
+    const ngayHD=safe(item.ngayKyHD,placeholder());
+    const ngayPL=safe(item.ngayLapPL,placeholder());
+    const hoTen=safe(item.hoTen,placeholder());
+    const phuLuc=safe(item.phuLucSo,'1').replace(/\.0$/,'');
+    text('field_Phu_luc_so',phuLuc); text('field_Phu_luc_so_2',phuLuc);
+    ['field_Dinh_kem_so_HD','field_Dinh_kem_so_HD_2','field_Dinh_kem_so_HD_3','field_Dinh_kem_so_HD_4'].forEach(id=>text(id,soHD));
+    ['field_Ngay_ky_HD','field_Ngay_ky_HD_2','field_Ngay_ky_HD_3','field_Ngay_ky_HD_4'].forEach(id=>text(id,ngayHD));
+    text('field_Ngay_lap_PL',ngayPL);
+    text('field_Dia_chi_Cong_ty',safe(item.diaChiCongTy,'Robot Tower, 308-308C Điện Biên Phủ, Phường 4, Quận 3, Thành phố Hồ Chí Minh, Việt Nam'));
+    text('field_Ten_giam_doc',safe(item.tenGiamDoc,'NGUYỄN MINH TRUNG')); text('field_Ten_giam_doc_ky',safe(item.tenGiamDoc,'NGUYỄN MINH TRUNG'));
+    text('field_Chuc_vu',safe(item.chucVu,'GIÁM ĐỐC'));
+    ['field_Ho_va_ten','field_Ho_va_ten_2','field_Ho_va_ten_ky'].forEach(id=>text(id,hoTen));
+    text('field_Ngay_sinh',safe(item.ngaySinh,placeholder())); text('field_Gioi_tinh',safe(item.gioiTinh,'..........'));
+    text('field_Dia_chi_lien_he',safe(item.diaChiLienHe,'..................................................'));
+    text('field_So_dien_thoai',safe(item.sdt,placeholder())); text('field_Ma_so_thue',safe(item.mst,placeholder()));
+    text('field_So_CMNDCCCD',safe(item.cmnd,placeholder())); text('field_So_tai_khoan',safe(item.stk,placeholder())); text('field_Tai_ngan_hang',safe(item.nganHang,placeholder()));
+    text('field_Noi_dung_PL',safe(item.noiDungPL || item.hangMuc,'....................'));
+    text('field_Don_vi_tinh',safe(item.dvt,'Gói')); text('field_So_luong',safe(item.soLuong,'1'));
+    text('field_Don_gia',formatVND(item.donGia || item.tongGiaTri,placeholder()));
+    text('field_Tong_gia_tri_HD_1',formatVND(item.tongGiaTri || item.donGia,placeholder())); text('field_Tong_gia_tri_HD_2',formatVND(item.tongGiaTri || item.donGia,placeholder()));
+    text('field_Thue_TNCN',formatVND(item.thueTNCN,placeholder())); text('field_So_tien_thuc_linh',formatVND(item.thucLinh,placeholder()));
+    text('field_Tu_ngay',safe(item.tuNgay,placeholder())); text('field_Den_ngay',safe(item.denNgay,placeholder()));
+    highlightMissing();
+  }
+
+  function fillQuickInputs(item){
+    $('in_hoTen').value=safe(item.hoTen,''); $('in_soHD').value=safe(item.dinhKemSoHD,'');
+    $('in_ngayKyHD').value=safe(item.ngayKyHD,''); $('in_ngayLapPL').value=safe(item.ngayLapPL,'');
+    $('in_noiDungPL').value=safe(item.noiDungPL || item.hangMuc,''); $('in_tongGiaTri').value=formatVND(item.tongGiaTri || item.donGia,'');
+  }
+
+  window.quickEdit = function(key,value,targetIds){
+    if(currentIdx<0) return;
+    globalData[currentIdx][key]=value;
+    targetIds.forEach(id=>text(id,value || placeholder()));
+    highlightMissing();
+  };
+  window.editGross = function(value){
+    if(currentIdx<0) return;
+    const item=globalData[currentIdx]; item.tongGiaTri=value; item.donGia=value;
+    const gross=parseVND(value);
+    if(gross!==null){ item.thueTNCN=String(Math.round(gross*.10)); item.thucLinh=String(gross-Math.round(gross*.10)); }
+    text('field_Don_gia',formatVND(value,placeholder())); text('field_Tong_gia_tri_HD_1',formatVND(value,placeholder())); text('field_Tong_gia_tri_HD_2',formatVND(value,placeholder()));
+    text('field_Thue_TNCN',formatVND(item.thueTNCN,placeholder())); text('field_So_tien_thuc_linh',formatVND(item.thucLinh,placeholder()));
+    highlightMissing();
+  };
+
+  function captureFieldsToItem(item){
+    const get=id=>safe($(id)?.innerText,'');
+    item.hoTen=get('field_Ho_va_ten'); item.dinhKemSoHD=get('field_Dinh_kem_so_HD'); item.ngayKyHD=get('field_Ngay_ky_HD'); item.ngayLapPL=get('field_Ngay_lap_PL');
+    item.noiDungPL=get('field_Noi_dung_PL'); item.dvt=get('field_Don_vi_tinh'); item.donGia=get('field_Don_gia'); item.soLuong=get('field_So_luong'); item.tongGiaTri=get('field_Tong_gia_tri_HD_2');
+    item.thueTNCN=get('field_Thue_TNCN'); item.thucLinh=get('field_So_tien_thuc_linh'); item.ngaySinh=get('field_Ngay_sinh'); item.gioiTinh=get('field_Gioi_tinh');
+    item.diaChiLienHe=get('field_Dia_chi_lien_he'); item.sdt=get('field_So_dien_thoai'); item.mst=get('field_Ma_so_thue'); item.cmnd=get('field_So_CMNDCCCD'); item.stk=get('field_So_tai_khoan'); item.nganHang=get('field_Tai_ngan_hang');
+    item.tuNgay=get('field_Tu_ngay'); item.denNgay=get('field_Den_ngay'); item.tenGiamDoc=get('field_Ten_giam_doc'); item.chucVu=get('field_Chuc_vu'); item.diaChiCongTy=get('field_Dia_chi_Cong_ty'); item.phuLucSo=get('field_Phu_luc_so');
+  }
+
+  function isPlaceholderValue(s){
+    const v=String(s||'').trim(); return !v || /^\.*$/.test(v) || /^\.{3,}$/.test(v);
+  }
+  function highlightMissing(){
+    document.querySelectorAll('#paper .editable-field').forEach(el => {
+      el.classList.toggle('missing',isPlaceholderValue(el.innerText));
+    });
+  }
+  function validateBeforeOutput(){
+    if(currentIdx<0 || !globalData[currentIdx]) return false;
+    saveCurrentSnapshot();
+    const item=globalData[currentIdx];
+    const missing=[];
+    if(isPlaceholderValue(item.hoTen)) missing.push('Tên CTV');
+    if(isPlaceholderValue(item.dinhKemSoHD)) missing.push('Số Hợp đồng');
+    if(isPlaceholderValue(item.ngayKyHD)) missing.push('Ngày ký HĐ');
+    if(isPlaceholderValue(item.ngayLapPL)) missing.push('Ngày lập PL');
+    if(isPlaceholderValue(item.noiDungPL)) missing.push('Nội dung PL');
+    if(parseVND(item.tongGiaTri)===null) missing.push('Tổng giá trị HĐ');
+    if(missing.length && !confirm('Còn thiếu dữ liệu: '+missing.join(', ')+'\n\nVẫn tiếp tục xuất?')) return false;
+    if(!item.hdOk && !confirm('Hợp đồng này chưa được đánh dấu “Hợp đồng OK”. Vẫn tiếp tục xuất?')) return false;
+    return true;
+  }
+
+  // ---------- WORD: tạo OOXML thật bằng docx.js ----------
+  function runOptions(extra={}) { return {font:'Times New Roman', size:26, color:'000000', ...extra}; }
+  function domRuns(node, inherited={}) {
+    const D=window.docx; const out=[];
+    if(!node) return out;
+    if(node.nodeType===Node.TEXT_NODE){
+      const raw=node.nodeValue || '';
+      const parts=raw.split(/\n/);
+      parts.forEach((part,i)=>{ if(i>0) out.push(new D.TextRun(runOptions({...inherited,break:1,text:''}))); if(part) out.push(new D.TextRun(runOptions({...inherited,text:part}))); });
+      return out;
     }
-
-    function cleanValue(val, fallback) {
-        if (!val || String(val).trim() === '' || String(val).includes('#NUM!')) {
-            return fallback || '....................';
-        }
-        return String(val).trim();
-    }
-
-    function formatNumber(val) {
-        if (!val || String(val).includes('#')) return '0';
-        let clean = String(val).replace(/,/g, '').trim();
-        let num = parseFloat(clean);
-        if (isNaN(num)) return val;
-        return num.toLocaleString('vi-VN');
-    }
-
-    function renderContract() {
-        const item = globalData[currentIdx];
-        if (!item) return;
-
-        let soHD = item.dinhKemSoHD ? (item.dinhKemSoHD.startsWith('/') ? '001/2021/HĐV/RSF' : item.dinhKemSoHD) : '001/2021/HĐV/RSF';
-        let ngayKyHD = cleanValue(item.ngayKyHD, '15/06/2021');
-        let ngayLapPL = cleanValue(item.ngayLapPL, ngayKyHD);
-        let phuLucSo = cleanValue(item.phuLucSo, '1').replace(/\.0$/, '');
-
-        let diaChiCongTy = cleanValue(item.diaChiCongTy, 'Robot Tower, 308-308C Điện Biên Phủ, Phường 4, Quận 3, Thành phố Hồ Chí Minh, Việt Nam');
-        let tenGiamDoc = cleanValue(item.tenGiamDoc, 'NGUYỄN MINH TRUNG');
-        let chucVu = cleanValue(item.chucVu, 'GIÁM ĐÓC');
-
-        document.getElementById('field_Phu_luc_so').innerText = phuLucSo;
-        document.getElementById('field_Phu_luc_so_2').innerText = phuLucSo;
-        document.getElementById('field_Dinh_kem_so_HD').innerText = soHD;
-        document.getElementById('field_Dinh_kem_so_HD_2').innerText = soHD;
-        document.getElementById('field_Dinh_kem_so_HD_3').innerText = soHD;
-        document.getElementById('field_Dinh_kem_so_HD_4').innerText = soHD;
-
-        document.getElementById('field_Ngay_ky_HD').innerText = ngayKyHD;
-        document.getElementById('field_Ngay_ky_HD_2').innerText = ngayKyHD;
-        document.getElementById('field_Ngay_ky_HD_3').innerText = ngayKyHD;
-        document.getElementById('field_Ngay_ky_HD_4').innerText = ngayKyHD;
-
-        document.getElementById('field_Ngay_lap_PL').innerText = ngayLapPL;
-
-        document.getElementById('field_Dia_chi_Cong_ty').innerText = diaChiCongTy;
-        document.getElementById('field_Ten_giam_doc').innerText = tenGiamDoc;
-        document.getElementById('field_Ten_giam_doc_ky').innerText = tenGiamDoc;
-        document.getElementById('field_Chuc_vu').innerText = chucVu;
-
-        let hoTen = cleanValue(item.hoTen, '....................');
-        document.getElementById('field_Ho_va_ten').innerText = hoTen;
-        document.getElementById('field_Ho_va_ten_2').innerText = hoTen;
-        document.getElementById('field_Ho_va_ten_ky').innerText = hoTen;
-
-        document.getElementById('field_Ngay_sinh').innerText = cleanValue(item.ngaySinh, '....................');
-        document.getElementById('field_Gioi_tinh').innerText = cleanValue(item.gioiTinh, '..........');
-        document.getElementById('field_Dia_chi_lien_he').innerText = cleanValue(item.diaChiLienHe, '..................................................');
-        document.getElementById('field_So_dien_thoai').innerText = cleanValue(item.sdt, '....................');
-        document.getElementById('field_Ma_so_thue').innerText = cleanValue(item.mst, '....................');
-        document.getElementById('field_So_CMNDCCCD').innerText = cleanValue(item.cmnd, '....................');
-        document.getElementById('field_So_tai_khoan').innerText = cleanValue(item.stk, '....................');
-        document.getElementById('field_Tai_ngan_hang').innerText = cleanValue(item.nganHang, '....................');
-
-        document.getElementById('field_Noi_dung_PL').innerText = cleanValue(item.noiDungPL || item.hangMuc, 'Thực hiện dịch vụ theo hợp đồng');
-        document.getElementById('field_So_luong').innerText = item.soLuong || '1';
-
-        let valDonGia = formatNumber(item.donGia || item.tongGiaTri);
-        document.getElementById('field_Don_vi_tinh').innerText = valDonGia;
-
-        let valTongGiaTri = formatNumber(item.tongGiaTri || item.donGia);
-        document.getElementById('field_Tong_gia_tri_HD_1').innerText = valTongGiaTri;
-        document.getElementById('field_Tong_gia_tri_HD_2').innerText = valTongGiaTri;
-
-        document.getElementById('field_Thue_TNCN').innerText = formatNumber(item.thueTNCN);
-        document.getElementById('field_So_tien_thuc_linh').innerText = formatNumber(item.thucLinh);
-
-        document.getElementById('field_Tu_ngay').innerText = cleanValue(item.tuNgay, '....................');
-        document.getElementById('field_Den_ngay').innerText = cleanValue(item.denNgay, '....................');
-
-        document.getElementById('in_hoTen').value = hoTen;
-        document.getElementById('in_soHD').value = soHD;
-        document.getElementById('in_ngayKyHD').value = ngayKyHD;
-        document.getElementById('in_ngayLapPL').value = ngayLapPL;
-        document.getElementById('in_noiDungPL').value = document.getElementById('field_Noi_dung_PL').innerText;
-        document.getElementById('in_tongGiaTri').value = valTongGiaTri;
-    }
-
-    function syncField(inputId, targetIds) {
-        let val = document.getElementById(inputId).value;
-        targetIds.forEach(id => {
-            let el = document.getElementById(id);
-            if (el) el.innerText = val;
-        });
-    }
-
-    function printAndMarkIn() {
-        if (globalData[currentIdx]) {
-            globalData[currentIdx].daIn = true;
-            renderSelectAndChecklistTable();
-        }
-        window.print();
-    }
-
-    // 🔴 HÀM XUẤT FILE WORD (.DOCX) CHUẨN ĐÃ ĐƯỢC TỐI ƯU
-    function exportToWord() {
-        const paperElement = document.getElementById('paper');
-        if (!paperElement) {
-            alert("⚠️ Không tìm thấy khung nội dung Phụ Lục để xuất Word!");
-            return;
-        }
-
-        // Tạo bản sao HTML để dọn dẹp các attribute chỉnh sửa
-        let paperClone = paperElement.cloneNode(true);
-        let editables = paperClone.querySelectorAll('[contenteditable]');
-        editables.forEach(el => {
-            el.removeAttribute('contenteditable');
-            el.style.backgroundColor = 'transparent';
-            el.style.border = 'none';
-        });
-
-        let hoTen = document.getElementById('field_Ho_va_ten').innerText.replace(/[^a-zA-Z0-9_À-ỹ ]/g, "").trim();
-        let fileName = `Phu_Luc_Hop_Dong_${hoTen || 'CTV'}.docx`;
-
-        let htmlString = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="utf-8">
-                <style>
-                    body { font-family: "Times New Roman", serif; font-size: 13pt; line-height: 1.4; color: #000; }
-                    .paper-header { text-align: center; margin-bottom: 20px; }
-                    .paper-title { font-weight: bold; font-size: 16pt; text-transform: uppercase; }
-                    .paper-subtitle { font-size: 12pt; font-style: italic; margin-top: 4px; }
-                    .bullet-item { margin-bottom: 4px; }
-                    .section-header { font-weight: bold; margin-top: 14px; margin-bottom: 6px; }
-                    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
-                    th, td { border: 1px solid #000; padding: 6px 8px; font-size: 12pt; }
-                    th { background-color: #d9d9d9; text-align: center; font-weight: bold; }
-                </style>
-            </head>
-            <body>
-                ${paperClone.innerHTML}
-            </body>
-            </html>
-        `;
-
-        try {
-            const converted = htmlDocx.asBlob(htmlString);
-            saveAs(converted, fileName);
-        } catch (e) {
-            alert("Lỗi khi kết xuất file Word: " + e.message);
-        }
-    }
-
-    // 🔴 HÀM LƯU TIẾN ĐỘ SANG GOOGLE SHEETS
-    function luuTienDoLenSheet() {
-        if (!globalData || globalData.length === 0) {
-            alert("⚠️ Chưa có dữ liệu Excel! Bạn hãy tải file Excel lên web trước.");
-            return;
-        }
-
-        const dataToSend = globalData.map(item => ({
-            name: item.hoTen,
-            hdOK: item.hdOk,
-            daIn: item.daIn
+    if(node.nodeType!==Node.ELEMENT_NODE) return out;
+    const tag=node.tagName;
+    if(tag==='BR'){ out.push(new D.TextRun(runOptions({...inherited,break:1,text:''}))); return out; }
+    const next={...inherited};
+    if(tag==='STRONG'||tag==='B') next.bold=true;
+    if(tag==='EM'||tag==='I') next.italics=true;
+    if(tag==='U') next.underline={};
+    const children=[...node.childNodes];
+    children.forEach((ch,idx)=>{
+      if((tag==='DIV'||tag==='P') && idx>0 && ch.nodeType===Node.ELEMENT_NODE && (ch.tagName==='DIV'||ch.tagName==='P')) out.push(new D.TextRun(runOptions({...next,break:1,text:''})));
+      out.push(...domRuns(ch,next));
+    });
+    return out;
+  }
+  function paragraphFromElement(el, opts={}) {
+    const D=window.docx;
+    const runs=domRuns(el, opts.run || {});
+    if(opts.prefix) runs.unshift(new D.TextRun(runOptions({text:opts.prefix,...(opts.run||{})})));
+    return new D.Paragraph({
+      children:runs.length?runs:[new D.TextRun(runOptions({text:''}))],
+      alignment:opts.alignment || D.AlignmentType.LEFT,
+      spacing:{after:opts.after ?? 60, line:opts.line ?? 276},
+      indent:opts.indent,
+      keepNext:!!opts.keepNext,
+      keepLines:!!opts.keepLines
+    });
+  }
+  function noBorders(){
+    const B=window.docx.BorderStyle;
+    const n={style:B.NONE,size:0,color:'FFFFFF'};
+    return {top:n,bottom:n,left:n,right:n,insideHorizontal:n,insideVertical:n};
+  }
+  function solidBorders(){
+    const B=window.docx.BorderStyle;
+    const b={style:B.SINGLE,size:4,color:'000000'};
+    return {top:b,bottom:b,left:b,right:b,insideHorizontal:b,insideVertical:b};
+  }
+  function infoGridToWord(el){
+    const D=window.docx; const kids=[...el.children];
+    return new D.Table({
+      width:{size:CONTENT_WIDTH,type:D.WidthType.DXA}, columnWidths:[Math.round(CONTENT_WIDTH*.58),Math.round(CONTENT_WIDTH*.42)], borders:noBorders(),
+      rows:[new D.TableRow({cantSplit:true,children:[0,1].map(i=>new D.TableCell({
+        width:{size:i===0?Math.round(CONTENT_WIDTH*.58):Math.round(CONTENT_WIDTH*.42),type:D.WidthType.DXA}, borders:noBorders(), margins:{top:0,bottom:0,left:0,right:0},
+        children:[paragraphFromElement(kids[i]||document.createElement('div'),{after:60})]
+      }))})]
+    });
+  }
+  function cellParagraph(cell, isHeader=false){
+    const D=window.docx;
+    let align=D.AlignmentType.LEFT;
+    const a=(cell.style.textAlign||'').toLowerCase(); if(a==='center') align=D.AlignmentType.CENTER; if(a==='right') align=D.AlignmentType.RIGHT;
+    return new D.Paragraph({children:domRuns(cell,{bold:isHeader || cell.style.fontWeight==='700',size:24}), alignment:align, spacing:{after:0,line:260}});
+  }
+  function tableToWord(tableEl){
+    const D=window.docx; const rows=[];
+    [...tableEl.rows].forEach((row,rowIndex)=>{
+      let colCursor=0; const cells=[];
+      [...row.cells].forEach(cell=>{
+        const span=cell.colSpan||1; const width=COLS.slice(colCursor,colCursor+span).reduce((a,b)=>a+b,0); colCursor+=span;
+        cells.push(new D.TableCell({
+          columnSpan:span, width:{size:width,type:D.WidthType.DXA}, borders:solidBorders(), verticalAlign:D.VerticalAlign.CENTER,
+          margins:{top:80,bottom:80,left:80,right:80}, shading:rowIndex===0?{fill:'D9D9D9'}:undefined,
+          children:[cellParagraph(cell,rowIndex===0)]
         }));
+      });
+      rows.push(new D.TableRow({children:cells,cantSplit:true,tableHeader:rowIndex===0}));
+    });
+    return new D.Table({width:{size:CONTENT_WIDTH,type:D.WidthType.DXA}, columnWidths:COLS, borders:solidBorders(), rows});
+  }
+  function signatureToWord(el){
+    const D=window.docx; const cols=[...el.children];
+    const makeCell=(c)=>{
+      const title=c?.querySelector('strong:first-child'); const name=c?.querySelector('strong:last-child');
+      return new D.TableCell({borders:noBorders(),width:{size:Math.floor(CONTENT_WIDTH/2),type:D.WidthType.DXA},margins:{top:0,bottom:0,left:0,right:0},children:[
+        paragraphFromElement(title||document.createElement('strong'),{alignment:D.AlignmentType.CENTER,run:{bold:true},after:0,keepNext:true}),
+        new D.Paragraph({children:[new D.TextRun(runOptions({text:''}))],spacing:{before:0,after:0,line:1500}}),
+        paragraphFromElement(name||document.createElement('strong'),{alignment:D.AlignmentType.CENTER,run:{bold:true},after:0})
+      ]});
+    };
+    return new D.Table({width:{size:CONTENT_WIDTH,type:D.WidthType.DXA},columnWidths:[Math.floor(CONTENT_WIDTH/2),Math.ceil(CONTENT_WIDTH/2)],borders:noBorders(),rows:[new D.TableRow({cantSplit:true,children:[makeCell(cols[0]),makeCell(cols[1])]})]});
+  }
+  function paperChildrenToWord(){
+    const D=window.docx; const out=[]; const paper=$('paper');
+    [...paper.children].forEach(el=>{
+      if(el.classList.contains('paper-header')){
+        const title=el.querySelector('.paper-title'), sub=el.querySelector('.paper-subtitle');
+        out.push(paragraphFromElement(title,{alignment:D.AlignmentType.CENTER,run:{bold:true,size:32},after:20,keepNext:true}));
+        out.push(paragraphFromElement(sub,{alignment:D.AlignmentType.CENTER,run:{italics:true,size:24},after:160}));
+      } else if(el.classList.contains('bullet-item')){
+        out.push(paragraphFromElement(el,{prefix:'– ',indent:{left:240,hanging:0},after:45}));
+      } else if(el.classList.contains('section-header')){
+        out.push(paragraphFromElement(el,{run:{bold:true},after:40,keepNext:true}));
+      } else if(el.classList.contains('info-grid')){
+        out.push(infoGridToWord(el));
+      } else if(el.classList.contains('data-table')){
+        out.push(tableToWord(el));
+      } else if(el.classList.contains('signature-block')){
+        out.push(signatureToWord(el));
+      } else if(el.tagName==='P'){
+        const indent=el.classList.contains('indent')?{left:360}:el.classList.contains('justify')?{firstLine:440}:undefined;
+        out.push(paragraphFromElement(el,{alignment:el.classList.contains('justify')?D.AlignmentType.JUSTIFIED:D.AlignmentType.LEFT,indent,after:60}));
+      }
+    });
+    return out;
+  }
 
-        fetch(GOOGLE_SHEET_API, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ list: dataToSend })
-        })
-        .then(() => {
-            alert("✅ ĐÃ LƯU TIẾN ĐỘ THÀNH CÔNG! Mời bạn kiểm tra Google Sheet.");
-        })
-        .catch(err => {
-            alert("❌ Lỗi gửi dữ liệu: " + err);
-        });
-    }
+  window.exportToWord = async function(){
+    if(!validateBeforeOutput()) return;
+    if(!window.docx || !window.docx.Packer) return alert('Không tải được thư viện tạo Word. Hãy kiểm tra Internet rồi tải lại trang.');
+    const btn=$('btnWord'); const old=btn.textContent; btn.disabled=true; btn.textContent='⏳ Đang tạo Word...';
+    try{
+      const D=window.docx;
+      const doc=new D.Document({
+        creator:'RSF Appendix Tool', title:'Phụ lục hợp đồng', description:'Generated from Excel data',
+        sections:[{properties:{page:{size:{width:A4.width,height:A4.height,orientation:D.PageOrientation.PORTRAIT},margin:{top:A4.margin,right:A4.margin,bottom:A4.margin,left:A4.margin,header:0,footer:0,gutter:0}}},children:paperChildrenToWord()}]
+      });
+      const blob=await D.Packer.toBlob(doc);
+      const name=sanitizeFilename($('field_Ho_va_ten').innerText || 'CTV');
+      saveAs(blob,`Phu_Luc_Hop_Dong_${name}.docx`);
+    }catch(err){ console.error(err); alert('Lỗi tạo file Word: '+err.message); }
+    finally{ btn.disabled=false; btn.textContent=old; }
+  };
+  function sanitizeFilename(s){ return String(s).normalize('NFC').replace(/[\\/:*?"<>|]/g,' ').replace(/\s+/g,' ').trim() || 'CTV'; }
+
+  // ---------- PRINT/PDF: cửa sổ sạch, không dính sidebar ----------
+  window.printCurrent = function(){
+    if(!validateBeforeOutput()) return;
+    const clone=$('paper').cloneNode(true);
+    clone.querySelectorAll('[contenteditable]').forEach(el=>el.removeAttribute('contenteditable'));
+    clone.querySelectorAll('.editable-field').forEach(el=>{el.classList.remove('missing'); el.style.background='transparent'; el.style.border='0';});
+    const name=sanitizeFilename($('field_Ho_va_ten').innerText || 'CTV');
+    const w=window.open('','_blank');
+    if(!w) return alert('Trình duyệt đang chặn popup. Hãy cho phép popup để mở cửa sổ in.');
+    w.document.open();
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Phu_Luc_Hop_Dong_${escapeHtml(name)}</title><style>
+      @page{size:A4 portrait;margin:15mm}*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff}body{font-family:"Times New Roman",Times,serif;font-size:13pt;line-height:1.15;color:#000}
+      #paper{width:auto;margin:0;padding:0}#paper p{margin:0 0 4pt}.paper-header{text-align:center;margin-bottom:10pt}.paper-title{font-size:16pt;font-weight:700;text-transform:uppercase;margin-bottom:2pt}.paper-subtitle{font-size:12pt;font-style:italic}
+      .bullet-item{position:relative;padding-left:18pt;margin-bottom:3pt}.bullet-item:before{content:"–";position:absolute;left:0}.section-header{font-weight:700;margin:8pt 0 3pt}.indent{padding-left:18pt}.justify{text-align:justify;text-indent:22pt}
+      .info-grid{display:grid;grid-template-columns:58% 42%;margin-bottom:4pt}.signature-block{display:grid;grid-template-columns:1fr 1fr;gap:20mm;margin-top:20pt;text-align:center;break-inside:avoid;page-break-inside:avoid}.signature-space{height:28mm}
+      .data-table{width:100%;border-collapse:collapse;table-layout:fixed;margin:8pt 0 9pt}.data-table th,.data-table td{border:1px solid #000;padding:4pt 5pt;font-size:12pt;vertical-align:middle}.data-table th{background:#d9d9d9;text-align:center;font-weight:700}.data-table thead{display:table-header-group}.data-table tr{break-inside:avoid;page-break-inside:avoid}.w35{width:35%}.w15{width:15%}.w18{width:18%}.w12{width:12%}.w20{width:20%}.editable-field{background:transparent!important;border:0!important}
+    </style></head><body>${clone.outerHTML}</body></html>`);
+    w.document.close();
+    w.onafterprint=()=>{ if(globalData[currentIdx]){globalData[currentIdx].daIn=true;persistStatuses();renderSelect();renderChecklist();$('chk_daIn').checked=true;} setTimeout(()=>w.close(),50); };
+    setTimeout(()=>{w.focus();w.print();},250);
+  };
+
+  window.exportProgressExcel = function(){
+    if(!globalData.length) return;
+    const rows=globalData.map((it,i)=>({STT:i+1,'Họ và tên':it.hoTen,'Số HĐ':it.dinhKemSoHD,'Hợp đồng OK':it.hdOk?'OK':'','Đã in Phụ lục':it.daIn?'Đã in':''}));
+    const ws=XLSX.utils.json_to_sheet(rows); ws['!cols']=[{wch:6},{wch:28},{wch:24},{wch:15},{wch:17}];
+    const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Tiến độ'); XLSX.writeFile(wb,'Tien_do_Phu_luc_Hop_dong.xlsx');
+  };
+
+  window.syncProgressToGoogleSheet = async function(){
+    if(!globalData.length) return alert('Chưa có dữ liệu.');
+    persistStatuses();
+    const payload={list:globalData.map(it=>({name:it.hoTen,hdOK:!!it.hdOk,daIn:!!it.daIn}))};
+    try{
+      await fetch(GOOGLE_SHEET_API,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
+      alert('Đã gửi dữ liệu tiến độ lên Google Sheet. Do Google Apps Script dùng chế độ no-cors, hãy mở Sheet để kiểm tra kết quả thực tế.');
+    }catch(err){ alert('Không gửi được tiến độ: '+err.message); }
+  };
+
+  function utf8ToBase64(str){ const bytes=new TextEncoder().encode(str); let bin=''; bytes.forEach(b=>bin+=String.fromCharCode(b)); return btoa(bin); }
+  function base64ToUtf8(b64){ const bin=atob(b64); const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0)); return new TextDecoder().decode(bytes); }
+  window.copyShareLink = async function(){
+    if(currentIdx<0) return;
+    saveCurrentSnapshot();
+    const it={...globalData[currentIdx],customHTML:null};
+    const url=location.origin+location.pathname+'?record='+encodeURIComponent(utf8ToBase64(JSON.stringify(it)));
+    try{ await navigator.clipboard.writeText(url); alert('Đã sao chép link xem CTV hiện tại.'); }
+    catch{ prompt('Sao chép link này:',url); }
+  };
+  function loadSharedRecordIfAny(){
+    const p=new URLSearchParams(location.search).get('record'); if(!p) return;
+    try{
+      const item=JSON.parse(base64ToUtf8(decodeURIComponent(p))); item.customHTML=null; globalData=[item];
+      $('controlCard').style.display='block'; renderSelect(); renderChecklist(); selectPerson(0);
+    }catch(err){ console.warn('Shared record invalid',err); }
+  }
+
+  // Khi sửa trực tiếp trên giấy, cập nhật trạng thái thiếu theo thời gian thực.
+  $('paper').addEventListener('input',()=>{ if(currentIdx>=0) captureFieldsToItem(globalData[currentIdx]); highlightMissing(); });
+
+})();
 </script>
 </body>
 </html>
