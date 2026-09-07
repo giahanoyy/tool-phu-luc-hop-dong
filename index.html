@@ -1002,37 +1002,33 @@ function taoLinkChiaSe() {
     console.log("Link chia sẻ:", shareableURL);
 }
 
+const GOOGLE_SHEET_API = "DÁN_LINK_BẠN_VỪA_COPY_VÀO_ĐÂY";
 
-// --- 2. HÀM TỰ ĐỘNG ĐỌC & KHÔI PHỤC DỮ LIỆU KHU LOAD TRANG ---
-function khoiPhucDuLieuTuURL() {
-    // Lấy đoạn hash trên URL (ví dụ: #data=...)
-    const hash = window.location.hash;
-
-    if (hash && hash.startsWith("#data=")) {
-        try {
-            // Cắt bỏ phần "#data=" để lấy đoạn mã nén
-            const compressedData = hash.replace("#data=", "");
-
-            // Giải nén dữ liệu
-            const jsonString = LZString.decompressFromEncodedURIComponent(compressedData);
-
-            if (jsonString) {
-                // Chuyển lại thành Object JavaScript
-                const data = JSON.parse(jsonString);
-
-                console.log("Dữ liệu khôi phục thành công từ URL:", data);
-
-                // GỌI HÀM CẬP NHẬT GIAO DIỆN CỦA BẠN TẠI ĐÂY
-                // Ví dụ: dienDuLieuVaoTrangWeb(data);
-                
-                alert("Đã tải tiến độ từ link chia sẻ!");
-            }
-        } catch (error) {
-            console.error("Lỗi khi giải mã dữ liệu từ URL:", error);
-        }
+function luuTienDoLenSheet() {
+    let danhSachCTV = []; 
+    if (typeof excelData !== 'undefined' && excelData.length > 0) {
+        danhSachCTV = excelData.map((ctv, index) => {
+            let state = (typeof checklistState !== 'undefined' && checklistState[index]) ? checklistState[index] : {};
+            return {
+                id: index + 1,
+                name: ctv["Họ & Tên CTV"] || ctv["Tên CTV"] || "CTV " + (index + 1),
+                hdOK: state.hdOK || false,
+                daIn: state.daIn || false
+            };
+        });
     }
-}
 
-// Gọi hàm khôi phục dữ liệu ngay khi trang web vừa nạp xong
-window.addEventListener("DOMContentLoaded", khoiPhucDuLieuTuURL);
-</script>
+    if (danhSachCTV.length === 0) {
+        alert("Chưa có dữ liệu Excel để lưu!");
+        return;
+    }
+
+    fetch(GOOGLE_SHEET_API, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ list: danhSachCTV })
+    })
+    .then(() => alert("Đã lưu tiến độ lên Google Sheet!"))
+    .catch(err => alert("Lỗi lưu dữ liệu: " + err));
+}
