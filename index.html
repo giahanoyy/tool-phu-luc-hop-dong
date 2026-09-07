@@ -443,7 +443,7 @@
                 <div class="btn-group">
                     <button class="btn btn-success" onclick="exportToWord()">📄 Xuất File WORD (.docx)</button>
                     <button class="btn" onclick="printAndMarkIn()">🖨️ In / Tải File PDF (Tự đánh dấu Đã In)</button>
-                    <button class="btn btn-purple" onclick="generateShareableLink()">🔗 Tạo Link Chia Sẻ Tất Cả HĐ Cho Sếp Xem</button>
+              <button onclick="luuTienDoLenSheet()" class="...">🔗 Tạo Link Chia Sẻ Cho Sếp Xem</button>
                 </div>
             </div>
         </div>
@@ -1002,33 +1002,47 @@ function taoLinkChiaSe() {
     console.log("Link chia sẻ:", shareableURL);
 }
 
-const GOOGLE_SHEET_API = "DÁN_LINK_BẠN_VỪA_COPY_VÀO_ĐÂY";
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+<script>
+// 🔴 DÁN ĐÚNG LINK WEB APP BẠN COPY Ở BƯỚC DEPLOY VÀO ĐÂY
+const GOOGLE_SHEET_API = "https://script.google.com/macros/s/AKfycb.../exec"; 
 
 function luuTienDoLenSheet() {
-    let danhSachCTV = []; 
+    // Tự động tìm dữ liệu danh sách CTV trong ứng dụng
+    let sourceData = [];
     if (typeof excelData !== 'undefined' && excelData.length > 0) {
-        danhSachCTV = excelData.map((ctv, index) => {
-            let state = (typeof checklistState !== 'undefined' && checklistState[index]) ? checklistState[index] : {};
-            return {
-                id: index + 1,
-                name: ctv["Họ & Tên CTV"] || ctv["Tên CTV"] || "CTV " + (index + 1),
-                hdOK: state.hdOK || false,
-                daIn: state.daIn || false
-            };
-        });
+        sourceData = excelData;
+    } else if (typeof ctvList !== 'undefined' && ctvList.length > 0) {
+        sourceData = ctvList;
     }
 
-    if (danhSachCTV.length === 0) {
-        alert("Chưa có dữ liệu Excel để lưu!");
+    if (sourceData.length === 0) {
+        alert("⚠️ Chưa có dữ liệu Excel! Bạn hãy chọn/tải file Excel lên web trước.");
         return;
     }
 
+    // Gom dữ liệu tên và trạng thái
+    const dataToSend = sourceData.map((item, index) => {
+        let state = (typeof checklistState !== 'undefined' && checklistState[index]) ? checklistState[index] : {};
+        return {
+            name: item["Họ & Tên CTV"] || item["Tên CTV"] || item["Ho va Ten"] || item.name || "CTV " + (index + 1),
+            hdOK: state.hdOK || false,
+            daIn: state.daIn || false
+        };
+    });
+
+    // Gửi sang Google Sheets
     fetch(GOOGLE_SHEET_API, {
         method: "POST",
         mode: "no-cors",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ list: danhSachCTV })
+        body: JSON.stringify({ list: dataToSend })
     })
-    .then(() => alert("Đã lưu tiến độ lên Google Sheet!"))
-    .catch(err => alert("Lỗi lưu dữ liệu: " + err));
+    .then(() => {
+        alert("✅ Đã gửi dữ liệu sang Google Sheet! Hãy kiểm tra lại Google Sheet.");
+    })
+    .catch(err => {
+        alert("❌ Lỗi gửi dữ liệu: " + err);
+    });
 }
+</script>
