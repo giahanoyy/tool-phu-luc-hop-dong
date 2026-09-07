@@ -965,36 +965,61 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
 
 <script>
-// --- 1. HÀM GOM DỮ LIỆU VÀ TẠO LINK CHIA SẺ ---
-function taoLinkChiaSe() {
-    // Thu thập dữ liệu hiện tại từ giao diện của bạn
-    // (Thay thế bằng các biến/dữ liệu thực tế của bạn)
-    const dataToSave = {
-        checklist: [
-            { id: 1, name: "Lê Nguyễn Hồng Ân", hdOK: true, daIn: false },
-            { id: 2, name: "Lâm Minh Chánh", hdOK: false, daIn: false }
-        ],
-        phuLucNoiDung: {
-            soHopDong: "033/2022/HDDV/RSF",
-            ngayKy: "29/10/2022",
-            tenCTV: "Lê Nguyễn Hồng Ân",
-            tongTien: "1.784.000"
+<script>
+// 🔴 DÁN LINK WEB APP GOOGLE SCRIPT CỦA BẠN VÀO ĐÂY
+const GOOGLE_SHEET_API = "https://script.google.com/macros/s/AKfycb.../exec";
+
+function luuTienDoLenSheet() {
+    let sourceData = [];
+
+    // 1. Cào trực tiếp dữ liệu từ bảng Checklist (Menu 2) trên giao diện
+    const rows = document.querySelectorAll('.checklist-container tr, table tr');
+    
+    rows.forEach((row) => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length >= 2) {
+            // Lấy tên CTV từ cột thứ 2
+            const name = cells[1] ? cells[1].innerText.trim() : '';
+            // Lấy trạng thái của 2 ô Checkbox
+            const checkboxes = row.querySelectorAll('input[type="checkbox"]');
+            
+            if (name && !name.includes("Họ & Tên")) {
+                sourceData.push({
+                    name: name,
+                    hdOK: checkboxes[0] ? checkboxes[0].checked : false,
+                    daIn: checkboxes[1] ? checkboxes[1].checked : false
+                });
+            }
         }
-    };
+    });
 
-    // Chuyển Object thành chuỗi JSON
-    const jsonString = JSON.stringify(dataToSave);
+    // 2. Nếu quét bảng vẫn chưa thấy, thử lấy biến tạm trong hệ thống
+    if (sourceData.length === 0) {
+        if (typeof excelData !== 'undefined') sourceData = excelData;
+        else if (typeof ctvList !== 'undefined') sourceData = ctvList;
+        else if (typeof data !== 'undefined') sourceData = data;
+    }
 
-    // Nén chuỗi JSON bằng lz-string (chuyển thành dạng URI Safe)
-    const compressedData = LZString.compressToEncodedURIComponent(jsonString);
+    if (sourceData.length === 0) {
+        alert("⚠️ Không tìm thấy dữ liệu trên màn hình! Bạn hãy tải file Excel lên trước.");
+        return;
+    }
 
-    // Tạo URL mới chứa dữ liệu đã nén ở sau dấu #
-    const shareableURL = window.location.origin + window.location.pathname + "#data=" + compressedData;
-
-    // Cập nhật thanh địa chỉ trình duyệt mà không làm reload trang
-    window.history.pushState({ path: shareableURL }, '', shareableURL);
-
-    // Copy link vào clipboard để gửi cho Sếp/Đồng nghiệp
+    // 3. Gửi sang Google Sheets
+    fetch(GOOGLE_SHEET_API, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ list: sourceData })
+    })
+    .then(() => {
+        alert("✅ ĐÃ LƯU TIẾN ĐỘ THÀNH CÔNG! Bạn hãy kiểm tra lại tab Google Sheet.");
+    })
+    .catch(err => {
+        alert("❌ Lỗi gửi dữ liệu: " + err);
+    });
+}
+</script>    // Copy link vào clipboard để gửi cho Sếp/Đồng nghiệp
     navigator.clipboard.writeText(shareableURL).then(() => {
         alert("Đã tạo và copy link chia sẻ thành công!");
     });
