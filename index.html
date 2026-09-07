@@ -1006,43 +1006,67 @@ function taoLinkChiaSe() {
 <script>
 // 🔴 DÁN ĐÚNG LINK WEB APP BẠN COPY Ở BƯỚC DEPLOY VÀO ĐÂY
 const GOOGLE_SHEET_API = "https://script.google.com/macros/s/AKfycb.../exec"; 
+<script>
+// 🔴 DÁN LINK WEB APP GOOGLE SCRIPT CỦA BẠN VÀO ĐÂY
+const GOOGLE_SHEET_API = "https://script.google.com/macros/s/AKfycb.../exec";
 
 function luuTienDoLenSheet() {
-    // Tự động tìm dữ liệu danh sách CTV trong ứng dụng
     let sourceData = [];
-    if (typeof excelData !== 'undefined' && excelData.length > 0) {
-        sourceData = excelData;
-    } else if (typeof ctvList !== 'undefined' && ctvList.length > 0) {
-        sourceData = ctvList;
+
+    // Tự động quét tìm biến chứa danh sách CTV trên web của bạn
+    if (typeof window.excelData !== 'undefined' && Array.isArray(window.excelData)) sourceData = window.excelData;
+    else if (typeof window.ctvList !== 'undefined' && Array.isArray(window.ctvList)) sourceData = window.ctvList;
+    else if (typeof window.data !== 'undefined' && Array.isArray(window.data)) sourceData = window.data;
+    else if (typeof window.listCTV !== 'undefined' && Array.isArray(window.listCTV)) sourceData = window.listCTV;
+
+    // Nếu không tìm thấy biến, lấy dữ liệu trực tiếp từ Bảng Checklist (Menu 2) trên giao diện
+    if (sourceData.length === 0) {
+        const rows = document.querySelectorAll('#checklistTable tbody tr, .checklist-row, table tr');
+        rows.forEach((row, idx) => {
+            const cells = row.querySelectorAll('td');
+            if (cells.length >= 2) {
+                const name = cells[1] ? cells[1].innerText.trim() : '';
+                const chkOK = row.querySelector('input[type="checkbox"]:nth-of-type(1)');
+                const chkIn = row.querySelector('input[type="checkbox"]:nth-of-type(2)');
+                if (name && name !== "Họ & Tên CTV") {
+                    sourceData.push({
+                        name: name,
+                        hdOK: chkOK ? chkOK.checked : false,
+                        daIn: chkIn ? chkIn.checked : false
+                    });
+                }
+            }
+        });
+    } else {
+        // Chuẩn hóa dữ liệu từ biến
+        sourceData = sourceData.map((item, index) => {
+            let state = (typeof window.checklistState !== 'undefined' && window.checklistState[index]) ? window.checklistState[index] : {};
+            return {
+                name: item["Họ & Tên CTV"] || item["Tên CTV"] || item.name || "CTV " + (index + 1),
+                hdOK: item.hdOK || state.hdOK || false,
+                daIn: item.daIn || state.daIn || false
+            };
+        });
     }
 
     if (sourceData.length === 0) {
-        alert("⚠️ Chưa có dữ liệu Excel! Bạn hãy chọn/tải file Excel lên web trước.");
+        alert("⚠️ Chưa tìm thấy dữ liệu CTV! Hãy đảm bảo bạn đã tải file Excel lên.");
         return;
     }
-
-    // Gom dữ liệu tên và trạng thái
-    const dataToSend = sourceData.map((item, index) => {
-        let state = (typeof checklistState !== 'undefined' && checklistState[index]) ? checklistState[index] : {};
-        return {
-            name: item["Họ & Tên CTV"] || item["Tên CTV"] || item["Ho va Ten"] || item.name || "CTV " + (index + 1),
-            hdOK: state.hdOK || false,
-            daIn: state.daIn || false
-        };
-    });
 
     // Gửi sang Google Sheets
     fetch(GOOGLE_SHEET_API, {
         method: "POST",
         mode: "no-cors",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ list: dataToSend })
+        body: JSON.stringify({ list: sourceData })
     })
     .then(() => {
-        alert("✅ Đã gửi dữ liệu sang Google Sheet! Hãy kiểm tra lại Google Sheet.");
+        alert("✅ ĐÃ GỬI TIẾN ĐỘ THÀNH CÔNG! Hãy sang tab Google Sheet kiểm tra.");
     })
     .catch(err => {
-        alert("❌ Lỗi gửi dữ liệu: " + err);
+        alert("❌ Lỗi gửi: " + err);
     });
 }
+</script>
 </script>
